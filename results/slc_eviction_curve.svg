@@ -1,0 +1,117 @@
+<svg width="1100" height="560" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: #ffffff; }
+    .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 21px; font-weight: 700; fill: #0f172a; }
+    .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; fill: #475569; }
+    .axis-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 600; fill: #1e293b; }
+    .grid { stroke: #e2e8f0; stroke-width: 1; stroke-dasharray: 4,4; }
+    .axis-line { stroke: #94a3b8; stroke-width: 1.5; }
+    .tick-hdr { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 700; fill: #1e293b; }
+    .tick-sub { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 10px; fill: #64748b; }
+    .line-slc { stroke: #2563eb; stroke-width: 3.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .cliff-line { stroke: #dc2626; stroke-width: 2; stroke-dasharray: 6,4; }
+    .val-badge { rx: 5; }
+    .val-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 700; fill: #ffffff; }
+  </style>
+  <rect width="1100" height="560" class="bg" rx="14" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="110" y="42" class="title">Ablation 1: GPU System-Level Cache (SLC) Eviction Curve</text>
+  <text x="110" y="65" class="subtitle">Effective Bandwidth vs. Working Set Size (INT4-G64, 4608×4608) | 16-Dispatch Warmup</text>
+  <rect x="110" y="100" width="139.5" height="370" fill="#eff6ff"/>
+  <rect x="125" y="115" width="190" height="26" rx="5" fill="#2563eb"/>
+  <text x="220" y="132" font-family="-apple-system, sans-serif" font-size="11px" font-weight="700" fill="#ffffff" text-anchor="middle">On-Die SLC Hit Zone (≤ 21.5 MB)</text>
+  <text x="125" y="158" font-family="-apple-system, sans-serif" font-size="11px" font-weight="600" fill="#1e40af">Bandwidth: 338.6 – 370.7 GB/s</text>
+  <text x="125" y="174" font-family="-apple-system, sans-serif" font-size="10px" fill="#3b82f6">Compute: 1,273 – 1,393 GFLOPS</text>
+  <rect x="249.5" y="100" width="790.5" height="370" fill="#f8fafc"/>
+  <rect x="274.5" y="115" width="250" height="26" rx="5" fill="#475569"/>
+  <text x="399.5" y="132" font-family="-apple-system, sans-serif" font-size="11px" font-weight="700" fill="#ffffff" text-anchor="middle">Cold Unified DRAM Saturation Zone (≥ 43.0 MB)</text>
+  <text x="274.5" y="158" font-family="-apple-system, sans-serif" font-size="11px" font-weight="600" fill="#334155">LPDDR5X Physical Bus Ceiling: ~234 – 251 GB/s</text>
+  <text x="274.5" y="174" font-family="-apple-system, sans-serif" font-size="10px" fill="#64748b">Cold Latency: 44.9 – 48.3 µs (880 – 945 GFLOPS)</text>
+  <line x1="249.5" y1="100" x2="249.5" y2="470" class="cliff-line"/>
+  <rect x="174.5" y="205.71428571428572" width="150" height="26" rx="5" fill="#dc2626"/>
+  <text x="249.5" y="222.71428571428572" font-family="-apple-system, sans-serif" font-size="11px" font-weight="700" fill="#ffffff" text-anchor="middle">SLC Eviction Cliff (~35 MB)</text>
+  <line x1="110" y1="470.0" x2="1040" y2="470.0" class="grid"/>
+  <text x="96" y="474.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">0 GB/s</text>
+  <line x1="110" y1="381.9047619047619" x2="1040" y2="381.9047619047619" class="grid"/>
+  <text x="96" y="385.9047619047619" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">100 GB/s</text>
+  <line x1="110" y1="293.80952380952385" x2="1040" y2="293.80952380952385" class="grid"/>
+  <text x="96" y="297.80952380952385" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">200 GB/s</text>
+  <line x1="110" y1="249.76190476190476" x2="1040" y2="249.76190476190476" class="grid"/>
+  <text x="96" y="253.76190476190476" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">250 GB/s</text>
+  <line x1="110" y1="205.71428571428572" x2="1040" y2="205.71428571428572" class="grid"/>
+  <text x="96" y="209.71428571428572" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">300 GB/s</text>
+  <line x1="110" y1="161.66666666666663" x2="1040" y2="161.66666666666663" class="grid"/>
+  <text x="96" y="165.66666666666663" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">350 GB/s</text>
+  <line x1="110" y1="117.61904761904765" x2="1040" y2="117.61904761904765" class="grid"/>
+  <text x="96" y="121.61904761904765" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">400 GB/s</text>
+  <line x1="110" y1="470" x2="1040" y2="470" class="axis-line"/>
+  <line x1="110" y1="100" x2="110" y2="470" class="axis-line"/>
+  <text x="575.0" y="535" class="axis-title" text-anchor="middle">Discrete Ring Pool Steps (Log-Quasi-Log Working Set Scale, MB) → Larger Defeats On-Die Cache</text>
+  <text x="32" y="285.0" class="axis-title" text-anchor="middle" transform="rotate(-90 32 285.0)">Measured Effective Bandwidth (GB/s)</text>
+  <line x1="110.0" y1="100" x2="110.0" y2="470" class="grid"/>
+  <text x="110.0" y="488" class="tick-hdr" text-anchor="middle">R=1</text>
+  <text x="110.0" y="502" class="tick-sub" text-anchor="middle">10.8 MB</text>
+  <line x1="203.0" y1="100" x2="203.0" y2="470" class="grid"/>
+  <text x="203.0" y="488" class="tick-hdr" text-anchor="middle">R=2</text>
+  <text x="203.0" y="502" class="tick-sub" text-anchor="middle">21.5 MB</text>
+  <line x1="296.0" y1="100" x2="296.0" y2="470" class="grid"/>
+  <text x="296.0" y="488" class="tick-hdr" text-anchor="middle">R=4</text>
+  <text x="296.0" y="502" class="tick-sub" text-anchor="middle">43.0 MB</text>
+  <line x1="389.0" y1="100" x2="389.0" y2="470" class="grid"/>
+  <text x="389.0" y="488" class="tick-hdr" text-anchor="middle">R=6</text>
+  <text x="389.0" y="502" class="tick-sub" text-anchor="middle">64.5 MB</text>
+  <line x1="482.0" y1="100" x2="482.0" y2="470" class="grid"/>
+  <text x="482.0" y="488" class="tick-hdr" text-anchor="middle">R=8</text>
+  <text x="482.0" y="502" class="tick-sub" text-anchor="middle">86.1 MB</text>
+  <line x1="575.0" y1="100" x2="575.0" y2="470" class="grid"/>
+  <text x="575.0" y="488" class="tick-hdr" text-anchor="middle">R=12</text>
+  <text x="575.0" y="502" class="tick-sub" text-anchor="middle">129.1 MB</text>
+  <line x1="668.0" y1="100" x2="668.0" y2="470" class="grid"/>
+  <text x="668.0" y="488" class="tick-hdr" text-anchor="middle">R=16</text>
+  <text x="668.0" y="502" class="tick-sub" text-anchor="middle">172.1 MB</text>
+  <line x1="761.0" y1="100" x2="761.0" y2="470" class="grid"/>
+  <text x="761.0" y="488" class="tick-hdr" text-anchor="middle">R=24</text>
+  <text x="761.0" y="502" class="tick-sub" text-anchor="middle">258.2 MB</text>
+  <line x1="854.0" y1="100" x2="854.0" y2="470" class="grid"/>
+  <text x="854.0" y="488" class="tick-hdr" text-anchor="middle">R=32</text>
+  <text x="854.0" y="502" class="tick-sub" text-anchor="middle">344.2 MB</text>
+  <line x1="947.0" y1="100" x2="947.0" y2="470" class="grid"/>
+  <text x="947.0" y="488" class="tick-hdr" text-anchor="middle">R=48</text>
+  <text x="947.0" y="502" class="tick-sub" text-anchor="middle">516.4 MB</text>
+  <line x1="1040.0" y1="100" x2="1040.0" y2="470" class="grid"/>
+  <text x="1040.0" y="488" class="tick-hdr" text-anchor="middle">R=64</text>
+  <text x="1040.0" y="502" class="tick-sub" text-anchor="middle">688.5 MB</text>
+  <polyline points="110.0,125.57757142857145 203.0,155.34847619047616 296.0,234.08888095238095 389.0,235.08259523809525 482.0,236.24633333333335 575.0,235.7089523809524 668.0,236.02433333333335 761.0,237.75892857142858 854.0,240.12604761904763 947.0,237.4197619047619 1040.0,241.5276428571429" class="line-slc"/>
+  <circle cx="110.0" cy="125.57757142857145" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <rect x="74.0" y="87.57757142857145" width="72" height="18" class="val-badge" fill="#1d4ed8"/>
+  <text x="110.0" y="100.57757142857145" class="val-text" text-anchor="middle">391.0</text>
+  <circle cx="203.0" cy="155.34847619047616" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <rect x="167.0" y="157.34847619047616" width="72" height="18" class="val-badge" fill="#1d4ed8"/>
+  <text x="203.0" y="170.34847619047616" class="val-text" text-anchor="middle">357.2</text>
+  <circle cx="296.0" cy="234.08888095238095" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <rect x="260.0" y="196.08888095238095" width="72" height="18" class="val-badge" fill="#334155"/>
+  <text x="296.0" y="209.08888095238095" class="val-text" text-anchor="middle">267.8</text>
+  <circle cx="389.0" cy="235.08259523809525" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <rect x="353.0" y="237.08259523809525" width="72" height="18" class="val-badge" fill="#334155"/>
+  <text x="389.0" y="250.08259523809525" class="val-text" text-anchor="middle">266.7</text>
+  <circle cx="482.0" cy="236.24633333333335" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <rect x="446.0" y="198.24633333333335" width="72" height="18" class="val-badge" fill="#334155"/>
+  <text x="482.0" y="211.24633333333335" class="val-text" text-anchor="middle">265.3</text>
+  <circle cx="575.0" cy="235.7089523809524" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <rect x="539.0" y="237.7089523809524" width="72" height="18" class="val-badge" fill="#334155"/>
+  <text x="575.0" y="250.7089523809524" class="val-text" text-anchor="middle">266.0</text>
+  <circle cx="668.0" cy="236.02433333333335" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <rect x="632.0" y="198.02433333333335" width="72" height="18" class="val-badge" fill="#334155"/>
+  <text x="668.0" y="211.02433333333335" class="val-text" text-anchor="middle">265.6</text>
+  <circle cx="761.0" cy="237.75892857142858" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <rect x="725.0" y="239.75892857142858" width="72" height="18" class="val-badge" fill="#334155"/>
+  <text x="761.0" y="252.75892857142858" class="val-text" text-anchor="middle">263.6</text>
+  <circle cx="854.0" cy="240.12604761904763" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <rect x="818.0" y="202.12604761904763" width="72" height="18" class="val-badge" fill="#334155"/>
+  <text x="854.0" y="215.12604761904763" class="val-text" text-anchor="middle">260.9</text>
+  <circle cx="947.0" cy="237.4197619047619" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <rect x="911.0" y="239.4197619047619" width="72" height="18" class="val-badge" fill="#334155"/>
+  <text x="947.0" y="252.4197619047619" class="val-text" text-anchor="middle">264.0</text>
+  <circle cx="1040.0" cy="241.5276428571429" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <rect x="1004.0" y="203.5276428571429" width="72" height="18" class="val-badge" fill="#334155"/>
+  <text x="1040.0" y="216.5276428571429" class="val-text" text-anchor="middle">259.3</text>
+</svg>

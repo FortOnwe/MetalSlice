@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use MetalSlice or its empirical findings in your research, please cite it as below."
+authors:
+  - family-names: "Onwe"
+    given-names: "Fortune N."
+title: "MetalSlice: Eliminating SIMD Starvation and Hiding Non-Power-of-Two Integer Division Penalties on Apple Silicon Unified Memory"
+version: 1.0.0
+date-released: 2026-10-22
+url: "https://github.com/FortOnwe/MetalSlice"
+repository-code: "https://github.com/FortOnwe/MetalSlice"
+license: MIT
+keywords:
+  - Apple Silicon
+  - Metal Shading Language
+  - Quantization
+  - GEMV
+  - System-Level Cache
+  - Unified Memory
+  - DVFS
