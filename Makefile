@@ -25,8 +25,14 @@ ablation: bin/ablation_runner
 	@mkdir -p results
 	./bin/ablation_runner
 
+warm-repeats: bin/ablation_runner
+	@mkdir -p results
+	./bin/ablation_runner warm-repeats
+	python3 src/analyze_warm_slc.py
+
 power: bin/bench_runner
 	python3 src/power_rerun_confirmation.py
+	python3 src/energy_stats.py
 	python3 src/generate_plots.py
 
 clean:

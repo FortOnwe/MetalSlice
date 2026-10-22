@@ -57,21 +57,33 @@ To isolate true hardware physics from software implementation artifacts, we re-e
 
 ---
 
-## Phase 4: Cross-Dimension Sweeps & Multi-Trial Power Telemetry (N=3)
+## Phase 4: Cross-Dimension Sweeps & Multi-Trial Power Telemetry (N=5)
 - Executed full hardware-timestamped sweeps across four canonical LLM dimensions:
   1. 4096×4096 (`results/sweep_4096x4096.csv`)
   2. 4608×4608 (`results/sweep_gpu_timestamps_4608x4608.csv`)
   3. 11008×4096 (`results/sweep_11008x4096.csv`)
   4. 8192×8192 (`results/sweep_8192x8192.csv`) — reaches **1,049.7 GFLOPS (266.8 GB/s)** in Cold DRAM at INT4-G256 and **1,026.2 GFLOPS (272.8 GB/s)** at INT4-G64.
-- Executed 3-trial continuous power and thermal confirmation (`src/power_rerun_confirmation.py` → `results/ablation_multitrial_confirmation.csv`, `results/power_telemetry_rigorous.csv`, `results/power_telemetry_rigorous.json`) across 10 configurations (FP32, FP16, INT8-G64, and INT4 at G ∈ {32, 48, 64, 72, 96, 128, 256}):
-  - Welch's t-test between FP16 (0.8974 ± 0.0488 J) and INT4-G128 (1.2072 ± 0.0291 J): t = 9.45, p = 0.0015.
-  - Established FP16 (0.8974 ± 0.0488 J / 1k GEMV at 6,049.5 ± 114.3 GEMV/s, 9.25 ± 0.21 W) as the Global Energy Minimum (due to low-voltage DVFS P-state memory stalls), and INT4-G128 (20,418.2 ± 106.4 GEMV/s, 1.2072 ± 0.0291 J / 1k GEMV) / INT4-G72 (20,027.2 ± 111.0 GEMV/s, 1.2166 ± 0.0489 J / 1k GEMV) as the Pareto Throughput-Efficiency Knee (3.38x faster than FP16, 48.2% lower energy than FP32).
+- Executed 5-trial randomized-order continuous power and thermal telemetry (`src/power_rerun_confirmation.py` → `results/ablation_multitrial_confirmation.csv`, `results/power_telemetry_rigorous.csv`, `results/power_telemetry_rigorous.json`, `results/energy_stats.json`) across 10 configurations (FP32, FP16, INT8-G64, and INT4 at G ∈ {32, 48, 64, 72, 96, 128, 256}) with per-run local idle baseline subtraction ($P_{\text{idle}} \in [0.99\text{ W}, 8.39\text{ W}]$) and 8.0s inter-run cooldown:
+  - Welch's t-test between FP16 (1.1564 ± 0.0573 J) and INT4-G128 (1.2814 ± 0.0370 J): $t = -4.10, p = 0.0048$ ($df=6.8, N=5$).
+  - Established FP16 (1.1564 ± 0.0573 J / 1k GEMV at 6,188.7 ± 45.3 GEMV/s, 10.74 ± 2.34 W active) as the Global Energy Minimum (memory read stalls holding the GPU in lower-frequency P-states), and INT4-G256 (20,839.5 ± 97.3 GEMV/s, 1.2623 ± 0.0469 J) / INT4-G128 (20,676.3 ± 66.2 GEMV/s, 1.2814 ± 0.0370 J) as the Pareto Throughput-Efficiency Knee (3.34x–3.37x faster than FP16, 44.2% lower energy than FP32).
+  - Confirmed statistical parity across INT4 $G \in [64, 256]$ ($t = -0.72, p = 0.4956$ for G256 vs. G128; $t = 0.60, p = 0.5646$ for G72 vs. G128).
 
 ---
 
-## Phase 5: Interactive Visualization Suite & GitHub Pages Deployment
-- Integrated interactive Luminous-styled web visualization artifacts:
-  1. `docs/index.html`: Complete multi-experiment interactive benchmark suite (Chart.js, KaTeX, responsive layout, dynamic theme switching, and live KPI calculations) deployed for GitHub Pages (`https://fortonwe.github.io/MetalSlice/`).
-  2. `results/interactive_benchmark.html`: Lightweight, zero-dependency standalone widget isolating group size scaling ($G=16 \to 256$) and SIMD lane starvation collapse.
-  3. `results/interactive_dashboard.html`: Complete multi-experiment dashboard mirroring `docs/index.html` for local inspection.
-- Updated `README.md` and `analysis.md` to reference interactive visualization deliverables. All SVG and HTML artifacts strictly validated against HTML/XML parsers.
+## Phase 5: Replicated Warm-SLC Ablation (N=20, Randomized Group Order)
+- Executed Ablation 5 (`runWarmSlcRepeats` in `src/ablation_runner.mm` → `results/ablation_warm_slc_repeats.csv`, analyzed via `src/analyze_warm_slc.py` → `results/ablation_warm_slc_repeats_summary.md`):
+  - In 1-row `C1Tpl`: Power-of-two group sizes average **1,463.1 GFLOPS** vs. non-PoT **1,412.7 GFLOPS** (+3.57% PoT advantage, 95% bootstrap CI [+3.56%, +3.59%], permutation $p < 0.001$), confirming the 1-cycle bitwise shift (`lsr`) vs. 3-cycle reciprocal multiply-high (`umulhi`) scale-indexing penalty.
+  - In 4-row register-tiled `C4Tpl`: 4-row instruction interleaving amortizes the integer division penalty across rows, yielding **1,481.2 GFLOPS** for non-PoT vs. **1,473.1 GFLOPS** for PoT (-0.55%), peaking at non-PoT $G=72$ (**1,517.6 ± 0.7 GFLOPS**) and $G=256$ (**1,550.3 ± 1.0 GFLOPS**).
+  - Formally refuted earlier unverified claims of a universal +5.2% PoT advantage across all architectures.
+
+---
+
+## Phase 6: Publication-Grade Figures & Interactive Dashboard Upgrades
+- Rewrote `src/generate_plots.py` so that 100% of plot elements, ranges, error bars, and tables derive directly from CSV telemetry:
+  1. `results/throughput_energy_pareto.svg`: Full 2D scatter with bi-directional error bars ($\pm 1\text{ SD}$ on GEMV/s and J/1k), non-overlapping callout pills, and embedded $N=5$ summary table.
+  2. `results/slc_eviction_curve.svg`: Discrete categorical step layout with explicit ordinal axis subtitle, non-colliding eviction cliff callout badge ($y = 185\text{ GB/s}$), and pre-drawn zone fills.
+  3. `results/group_granularity_scaling.svg`: Dual-regime plot displaying replicated $N=20$ `C4Tpl` and `C1Tpl` curves alongside Cold DRAM and Legacy Starvation, with zero-collision legend header ($y = 90$).
+- All SVGs visually validated via native AppKit high-resolution rasterization (`scratch/render_svg.m`).
+- Upgraded `docs/index.html` and `results/interactive_dashboard.html`:
+  - Upgraded Pareto view to a true 2D scatter plot (Throughput vs. Net Energy) with dynamic tooltips and active package power subviews.
+  - Embedded exact $N=5$ JSON telemetry and verified HTML structure with strict Python parser. Deployed for GitHub Pages (`https://fortonwe.github.io/MetalSlice/`).

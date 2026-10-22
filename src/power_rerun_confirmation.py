@@ -4,10 +4,13 @@ import json
 import time
 import sys
 import os
+import random
 
-MACMON_BIN = "/opt/homebrew/bin/macmon"
-BENCH_BIN = "/Users/fo/Documents/Antigravity Test/metal_unified_memory_quant_study/bin/bench_runner"
-RESULTS_DIR = "/Users/fo/Documents/Antigravity Test/metal_unified_memory_quant_study/results"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MACMON_BIN = os.environ.get("MACMON_BIN", "/opt/homebrew/bin/macmon")
+BENCH_BIN = os.path.join(ROOT, "bin", "bench_runner")
+RESULTS_DIR = os.path.join(ROOT, "results")
+COOLDOWN_S = 8.0  # longer cooldown + randomized order to decouple config from thermal state
 
 def measure_idle(seconds=4.0):
     proc = subprocess.Popen([MACMON_BIN, "pipe", "-i", "500"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -27,7 +30,7 @@ def measure_idle(seconds=4.0):
     avg_temp = sum(s.get("temp", {}).get("gpu_temp_avg", 36.0) for s in valid) / len(valid)
     return avg_all, avg_temp
 
-def run_single_trial(precision, group_size, trial_id, idle_power):
+def run_single_trial(precision, group_size, trial_id, idle_power, order_idx=0):
     proc_macmon = subprocess.Popen([MACMON_BIN, "pipe", "-i", "500"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     
     bench_cmd = [
@@ -77,6 +80,7 @@ def run_single_trial(precision, group_size, trial_id, idle_power):
 
     return {
         "trial": trial_id,
+        "order_idx": order_idx,
         "precision": precision,
         "group_size": group_size,
         "dispatches_per_sec": rate,
@@ -110,20 +114,25 @@ def main():
     ]
 
     all_trials = []
-    num_trials = 3
+    num_trials = 5
+    random.seed(20261022)
 
     for trial in range(1, num_trials + 1):
         print(f"\n--- TRIAL {trial} of {num_trials} ---")
-        for prec, gs in test_configs:
-            res = run_single_trial(prec, gs, trial, idle_power)
+        order = test_configs[:]
+        random.shuffle(order)
+        for idx, (prec, gs) in enumerate(order):
+            local_idle, _ = measure_idle(seconds=3.0)  # per-run idle baseline (background load drifts)
+            res = run_single_trial(prec, gs, trial, local_idle, idx)
+            res["idle_power_w"] = local_idle
             all_trials.append(res)
             print(f"  {prec.upper()}-G{gs}: {res['dispatches_per_sec']:.1f} GEMV/s | Active={res['active_power_w']:.2f}W (RAM={res['ram_power_w']:.2f}W) | {res['joules_per_1k']:.4f} J/1k | Temp={res['gpu_temp_c']:.1f}C")
-            time.sleep(1.5) # cooldown
+            time.sleep(COOLDOWN_S) # cooldown
 
     # Statistical Aggregation
     csv_path = os.path.join(RESULTS_DIR, "ablation_multitrial_confirmation.csv")
     with open(csv_path, "w") as f:
-        headers = ["trial", "precision", "group_size", "dispatches_per_sec", "active_power_w", "net_power_w", "ram_power_w", "gpu_power_w", "gpu_temp_c", "joules_per_1k"]
+        headers = ["trial", "order_idx", "idle_power_w", "precision", "group_size", "dispatches_per_sec", "active_power_w", "net_power_w", "ram_power_w", "gpu_power_w", "gpu_temp_c", "joules_per_1k"]
         f.write(",".join(headers) + "\n")
         for r in all_trials:
             f.write(",".join(str(r[h]) for h in headers) + "\n")
@@ -138,16 +147,16 @@ def main():
     for prec, gs in test_configs:
         subset = [r for r in all_trials if r["precision"] == prec and r["group_size"] == gs]
         mean_tp = sum(r["dispatches_per_sec"] for r in subset) / len(subset)
-        std_tp = (sum((r["dispatches_per_sec"] - mean_tp)**2 for r in subset) / len(subset))**0.5
+        std_tp = (sum((r["dispatches_per_sec"] - mean_tp)**2 for r in subset) / max(1, len(subset) - 1))**0.5
         mean_pw = sum(r["active_power_w"] for r in subset) / len(subset)
-        std_pw = (sum((r["active_power_w"] - mean_pw)**2 for r in subset) / len(subset))**0.5
+        std_pw = (sum((r["active_power_w"] - mean_pw)**2 for r in subset) / max(1, len(subset) - 1))**0.5
         mean_npw = sum(r["net_power_w"] for r in subset) / len(subset)
         mean_ram = sum(r["ram_power_w"] for r in subset) / len(subset)
-        std_ram = (sum((r["ram_power_w"] - mean_ram)**2 for r in subset) / len(subset))**0.5
+        std_ram = (sum((r["ram_power_w"] - mean_ram)**2 for r in subset) / max(1, len(subset) - 1))**0.5
         mean_gpu = sum(r["gpu_power_w"] for r in subset) / len(subset)
         mean_tmp = sum(r["gpu_temp_c"] for r in subset) / len(subset)
         mean_en = sum(r["joules_per_1k"] for r in subset) / len(subset)
-        std_en = (sum((r["joules_per_1k"] - mean_en)**2 for r in subset) / len(subset))**0.5
+        std_en = (sum((r["joules_per_1k"] - mean_en)**2 for r in subset) / max(1, len(subset) - 1))**0.5
 
         K, N = 4608, 4608
         mparams = (K * N) / 1e6

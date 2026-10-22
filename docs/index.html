@@ -947,6 +947,7 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
       padding: 0;
       font-family: var(--ff-sans, 'Google Sans Flex', -apple-system, sans-serif);
       -webkit-font-smoothing: antialiased;
+      overflow-y: auto;
     }
 
     .dashboard-wrapper {
@@ -1253,10 +1254,10 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
     </div>
   </div>
 
-  <!-- Hardware Banner -->
+  <!-- Hardware Banner (Verified Specs Only) -->
   <div class="spec-banner">
     <span class="spec-dot"></span>
-    <strong>Hardware Testbed:</strong> Apple M5 Pro (18 CPU cores, 16-core GPU, 48 GB Unified LPDDR5X @ 273 GB/s) &bull; macOS 27.0.1 &bull; Metal 3.2
+    <strong>Hardware Testbed:</strong> Apple M5 Pro (18 CPU cores, 48 GB Unified LPDDR5X) &bull; macOS 27.0.1 &bull; Metal Compute Shaders
   </div>
 
   <!-- Primary Experiment Selector Tabs -->
@@ -1267,16 +1268,12 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
   </div>
 
   <!-- Dynamic Metric KPI Cards -->
-  <div class="metrics-grid" id="kpi-deck">
-    <!-- Rendered dynamically by active experiment -->
-  </div>
+  <div class="metrics-grid" id="kpi-deck"></div>
 
   <!-- Chart Viewport Card -->
   <div class="chart-container-card">
     <div class="control-deck">
-      <div class="segmented-controls" id="subview-controls" role="tablist">
-        <!-- Subview buttons injected dynamically -->
-      </div>
+      <div class="segmented-controls" id="subview-controls" role="tablist"></div>
       <div id="chart-legend" class="lumi-chart-legend" style="display: flex; gap: 12px; align-items: center; font-size: 12px; font-family: var(--ff-mono);"></div>
     </div>
 
@@ -1284,9 +1281,7 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
       <canvas id="benchmarkChart"></canvas>
     </div>
 
-    <div class="insight-callout" id="insight-text">
-      <!-- Injected dynamically -->
-    </div>
+    <div class="insight-callout" id="insight-text"></div>
   </div>
 
   <!-- Microarchitecture Note -->
@@ -1296,8 +1291,8 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
       MetalSlice refactors Apple Silicon SIMD execution from legacy thread-strided assignment into 
       cooperative SIMDgroups where 32 execution lanes collectively stream 
       <span class="code-pill">32 lanes &times; 8 INT4 weights = 128 bytes</span> (1 exact Apple Silicon cache line per step). 
-      This eliminates the legacy <span class="code-pill">G &ge; 128</span> SIMD lane starvation collapse 
-      while compiler template specialization <span class="code-pill">&lt;G&gt;</span> transforms dynamic integer modulo into 1-cycle bitwise shifts (<span class="code-pill">lsr</span>).
+      This eliminates the legacy <span class="code-pill">G &ge; 128</span> SIMD lane starvation collapse,
+      where <span class="code-pill">num_groups = K/G &lt; 128</span> left 72%&ndash;86% of SIMD lanes idle.
     </div>
   </div>
 
@@ -1309,54 +1304,354 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
 </div>
 
 <script>
-  // 1. DATASETS
+  // EXACT MEASURED DATA FROM CSVs
   const DATA_GRANULARITY = [
-    { label: 'G=16', g: 16, pot: true, warm_slc: 1344.0, cold_dram: 838.3, legacy: 811.0, gemv: 17800, energy: 1.380 },
-    { label: 'G=24', g: 24, pot: false, warm_slc: 1466.4, cold_dram: 905.7, legacy: 882.4, gemv: 18600, energy: 1.310 },
-    { label: 'G=32', g: 32, pot: true, warm_slc: 1424.7, cold_dram: 954.4, legacy: 934.2, gemv: 18882, energy: 1.259 },
-    { label: 'G=48', g: 48, pot: false, warm_slc: 1509.1, cold_dram: 970.0, legacy: 961.6, gemv: 19358, energy: 1.236 },
-    { label: 'G=64', g: 64, pot: true, warm_slc: 1488.0, cold_dram: 986.8, legacy: 971.2, gemv: 19782, energy: 1.208 },
-    { label: 'G=72', g: 72, pot: false, warm_slc: 1498.1, cold_dram: 1007.4, legacy: 970.9, gemv: 20027, energy: 1.217 },
-    { label: 'G=96', g: 96, pot: false, warm_slc: 1524.3, cold_dram: 1012.4, legacy: 951.9, gemv: 20169, energy: 1.269 },
-    { label: 'G=128', g: 128, pot: true, warm_slc: 1532.9, cold_dram: 1002.1, legacy: 857.0, gemv: 20418, energy: 1.207 },
-    { label: 'G=256', g: 256, pot: true, warm_slc: 1570.4, cold_dram: 1014.6, legacy: 758.5, gemv: 20179, energy: 1.255 }
-  ];
-
+  {
+    "label": "G=16",
+    "g": 16,
+    "pot": true,
+    "warm_c4": 1403.4,
+    "warm_c1": 1470.0,
+    "cold_dram": 838.3,
+    "legacy": 811.0,
+    "gemv": null,
+    "gemv_sd": null,
+    "energy": null,
+    "energy_sd": null
+  },
+  {
+    "label": "G=24",
+    "g": 24,
+    "pot": false,
+    "warm_c4": 1428.9,
+    "warm_c1": 1400.3,
+    "cold_dram": 905.7,
+    "legacy": 882.4,
+    "gemv": null,
+    "gemv_sd": null,
+    "energy": null,
+    "energy_sd": null
+  },
+  {
+    "label": "G=32",
+    "g": 32,
+    "pot": true,
+    "warm_c4": 1437.2,
+    "warm_c1": 1454.8,
+    "cold_dram": 954.4,
+    "legacy": 934.2,
+    "gemv": 19369.2,
+    "gemv_sd": 71.7,
+    "energy": 1.2859,
+    "energy_sd": 0.0644
+  },
+  {
+    "label": "G=48",
+    "g": 48,
+    "pot": false,
+    "warm_c4": 1505.7,
+    "warm_c1": 1431.3,
+    "cold_dram": 970.0,
+    "legacy": 961.6,
+    "gemv": 19887.2,
+    "gemv_sd": 57.0,
+    "energy": 1.3253,
+    "energy_sd": 0.0357
+  },
+  {
+    "label": "G=64",
+    "g": 64,
+    "pot": true,
+    "warm_c4": 1489.6,
+    "warm_c1": 1480.8,
+    "cold_dram": 986.8,
+    "legacy": 971.2,
+    "gemv": 20235.1,
+    "gemv_sd": 82.1,
+    "energy": 1.2827,
+    "energy_sd": 0.0382
+  },
+  {
+    "label": "G=72",
+    "g": 72,
+    "pot": false,
+    "warm_c4": 1517.6,
+    "warm_c1": 1422.4,
+    "cold_dram": 1007.4,
+    "legacy": 970.9,
+    "gemv": 20367.1,
+    "gemv_sd": 99.6,
+    "energy": 1.2937,
+    "energy_sd": 0.0266
+  },
+  {
+    "label": "G=96",
+    "g": 96,
+    "pot": false,
+    "warm_c4": 1472.7,
+    "warm_c1": 1396.8,
+    "cold_dram": 1012.4,
+    "legacy": 951.9,
+    "gemv": 20560.9,
+    "gemv_sd": 61.7,
+    "energy": 1.3152,
+    "energy_sd": 0.0457
+  },
+  {
+    "label": "G=128",
+    "g": 128,
+    "pot": true,
+    "warm_c4": 1484.9,
+    "warm_c1": 1436.1,
+    "cold_dram": 1002.1,
+    "legacy": 857.0,
+    "gemv": 20676.3,
+    "gemv_sd": 66.2,
+    "energy": 1.2814,
+    "energy_sd": 0.037
+  },
+  {
+    "label": "G=256",
+    "g": 256,
+    "pot": true,
+    "warm_c4": 1550.3,
+    "warm_c1": 1474.0,
+    "cold_dram": 1014.6,
+    "legacy": 758.5,
+    "gemv": 20839.5,
+    "gemv_sd": 97.3,
+    "energy": 1.2623,
+    "energy_sd": 0.0469
+  }
+];
   const DATA_SLC = [
-    { ring: 1,  mb: 10.76,  us: 28.90, bw: 391.0, gflops: 1469.5, regime: 'Warm SLC Hit' },
-    { ring: 2,  mb: 21.52,  us: 31.63, bw: 357.2, gflops: 1342.5, regime: 'Warm SLC Hit' },
-    { ring: 4,  mb: 43.03,  us: 42.19, bw: 267.8, gflops: 1006.5, regime: 'Cold DRAM Cliff' },
-    { ring: 6,  mb: 64.55,  us: 42.37, bw: 266.7, gflops: 1002.3, regime: 'Cold DRAM Bus' },
-    { ring: 8,  mb: 86.06,  us: 42.58, bw: 265.3, gflops: 997.3,  regime: 'Cold DRAM Bus' },
-    { ring: 12, mb: 129.09, us: 42.48, bw: 266.0, gflops: 999.6,  regime: 'Cold DRAM Bus' },
-    { ring: 16, mb: 172.13, us: 42.54, bw: 265.6, gflops: 998.3,  regime: 'Cold DRAM Bus' },
-    { ring: 24, mb: 258.19, us: 42.86, bw: 263.6, gflops: 990.9,  regime: 'Cold DRAM Bus' },
-    { ring: 32, mb: 344.25, us: 43.30, bw: 260.9, gflops: 980.8,  regime: 'Cold DRAM Bus' },
-    { ring: 48, mb: 516.38, us: 42.80, bw: 264.0, gflops: 992.3,  regime: 'Cold DRAM Bus' },
-    { ring: 64, mb: 688.50, us: 43.57, bw: 259.3, gflops: 974.8,  regime: 'Cold DRAM Bus' }
-  ];
-
+  {
+    "ring": 1,
+    "mb": 10.76,
+    "us": 28.9,
+    "bw": 391.0,
+    "gflops": 1469.5,
+    "regime": "Warm SLC Hit"
+  },
+  {
+    "ring": 2,
+    "mb": 21.52,
+    "us": 31.63,
+    "bw": 357.2,
+    "gflops": 1342.5,
+    "regime": "Warm SLC Hit"
+  },
+  {
+    "ring": 4,
+    "mb": 43.03,
+    "us": 42.19,
+    "bw": 267.8,
+    "gflops": 1006.5,
+    "regime": "SLC Eviction Cliff"
+  },
+  {
+    "ring": 6,
+    "mb": 64.55,
+    "us": 42.37,
+    "bw": 266.7,
+    "gflops": 1002.3,
+    "regime": "Cold DRAM Bus"
+  },
+  {
+    "ring": 8,
+    "mb": 86.06,
+    "us": 42.58,
+    "bw": 265.3,
+    "gflops": 997.3,
+    "regime": "Cold DRAM Bus"
+  },
+  {
+    "ring": 12,
+    "mb": 129.09,
+    "us": 42.48,
+    "bw": 266.0,
+    "gflops": 999.6,
+    "regime": "Cold DRAM Bus"
+  },
+  {
+    "ring": 16,
+    "mb": 172.12,
+    "us": 42.54,
+    "bw": 265.6,
+    "gflops": 998.3,
+    "regime": "Cold DRAM Bus"
+  },
+  {
+    "ring": 24,
+    "mb": 258.19,
+    "us": 42.86,
+    "bw": 263.6,
+    "gflops": 990.9,
+    "regime": "Cold DRAM Bus"
+  },
+  {
+    "ring": 32,
+    "mb": 344.25,
+    "us": 43.3,
+    "bw": 260.9,
+    "gflops": 980.8,
+    "regime": "Cold DRAM Bus"
+  },
+  {
+    "ring": 48,
+    "mb": 516.38,
+    "us": 42.8,
+    "bw": 264.0,
+    "gflops": 992.3,
+    "regime": "Cold DRAM Bus"
+  },
+  {
+    "ring": 64,
+    "mb": 688.5,
+    "us": 43.57,
+    "bw": 259.3,
+    "gflops": 974.8,
+    "regime": "Cold DRAM Bus"
+  }
+];
   const DATA_PARETO = [
-    { label: 'FP32',       gemv: 3081.4,  energy: 2.329, power: 11.00, temp: 61.0, type: 'Baseline' },
-    { label: 'FP16',       gemv: 6049.5,  energy: 0.897, power: 9.25,  temp: 61.9, type: 'Low DVFS Stall' },
-    { label: 'INT8-G64',   gemv: 11065.9, energy: 1.565, power: 21.14, temp: 64.7, type: 'Quantized' },
-    { label: 'INT4-G32',   gemv: 18882.3, energy: 1.259, power: 27.60, temp: 67.5, type: 'INT4 Frontier' },
-    { label: 'INT4-G48',   gemv: 19358.1, energy: 1.236, power: 27.73, temp: 69.6, type: 'INT4 Frontier' },
-    { label: 'INT4-G64',   gemv: 19782.1, energy: 1.208, power: 27.72, temp: 70.2, type: 'INT4 Frontier' },
-    { label: 'INT4-G72',   gemv: 20027.2, energy: 1.217, power: 28.19, temp: 71.2, type: 'INT4 Frontier' },
-    { label: 'INT4-G96',   gemv: 20169.0, energy: 1.269, power: 29.41, temp: 71.9, type: 'INT4 Frontier' },
-    { label: 'INT4-G128',  gemv: 20418.2, energy: 1.207, power: 28.47, temp: 72.4, type: 'Pareto Knee' },
-    { label: 'INT4-G256',  gemv: 20178.6, energy: 1.255, power: 29.15, temp: 73.1, type: 'INT4 Frontier' }
-  ];
+  {
+    "label": "FP32",
+    "precision": "fp32",
+    "group_size": 0,
+    "gemv": 3159.3,
+    "gemv_sd": 28.1,
+    "energy": 2.2622,
+    "energy_sd": 0.23,
+    "power": 11.23,
+    "power_sd": 2.38,
+    "temp": 56.9,
+    "type": "Baseline"
+  },
+  {
+    "label": "FP16",
+    "precision": "fp16",
+    "group_size": 0,
+    "gemv": 6188.7,
+    "gemv_sd": 45.3,
+    "energy": 1.1564,
+    "energy_sd": 0.0573,
+    "power": 10.74,
+    "power_sd": 2.34,
+    "temp": 55.2,
+    "type": "Lowest Energy"
+  },
+  {
+    "label": "INT8-G64",
+    "precision": "int8",
+    "group_size": 64,
+    "gemv": 11275.5,
+    "gemv_sd": 92.5,
+    "energy": 1.5982,
+    "energy_sd": 0.0452,
+    "power": 22.39,
+    "power_sd": 2.28,
+    "temp": 59.0,
+    "type": "INT8 Boost"
+  },
+  {
+    "label": "INT4-G32",
+    "precision": "int4",
+    "group_size": 32,
+    "gemv": 19369.2,
+    "gemv_sd": 71.7,
+    "energy": 1.2859,
+    "energy_sd": 0.0644,
+    "power": 29.75,
+    "power_sd": 1.5,
+    "temp": 61.5,
+    "type": "INT4 Frontier"
+  },
+  {
+    "label": "INT4-G48",
+    "precision": "int4",
+    "group_size": 48,
+    "gemv": 19887.2,
+    "gemv_sd": 57.0,
+    "energy": 1.3253,
+    "energy_sd": 0.0357,
+    "power": 30.17,
+    "power_sd": 2.23,
+    "temp": 61.2,
+    "type": "INT4 Frontier"
+  },
+  {
+    "label": "INT4-G64",
+    "precision": "int4",
+    "group_size": 64,
+    "gemv": 20235.1,
+    "gemv_sd": 82.1,
+    "energy": 1.2827,
+    "energy_sd": 0.0382,
+    "power": 30.84,
+    "power_sd": 2.32,
+    "temp": 62.2,
+    "type": "INT4 Frontier"
+  },
+  {
+    "label": "INT4-G72",
+    "precision": "int4",
+    "group_size": 72,
+    "gemv": 20367.1,
+    "gemv_sd": 99.6,
+    "energy": 1.2937,
+    "energy_sd": 0.0266,
+    "power": 31.24,
+    "power_sd": 2.74,
+    "temp": 61.6,
+    "type": "INT4 Frontier"
+  },
+  {
+    "label": "INT4-G96",
+    "precision": "int4",
+    "group_size": 96,
+    "gemv": 20560.9,
+    "gemv_sd": 61.7,
+    "energy": 1.3152,
+    "energy_sd": 0.0457,
+    "power": 30.83,
+    "power_sd": 2.08,
+    "temp": 60.4,
+    "type": "INT4 Frontier"
+  },
+  {
+    "label": "INT4-G128",
+    "precision": "int4",
+    "group_size": 128,
+    "gemv": 20676.3,
+    "gemv_sd": 66.2,
+    "energy": 1.2814,
+    "energy_sd": 0.037,
+    "power": 30.5,
+    "power_sd": 2.54,
+    "temp": 61.5,
+    "type": "INT4 Frontier"
+  },
+  {
+    "label": "INT4-G256",
+    "precision": "int4",
+    "group_size": 256,
+    "gemv": 20839.5,
+    "gemv_sd": 97.3,
+    "energy": 1.2623,
+    "energy_sd": 0.0469,
+    "power": 31.24,
+    "power_sd": 2.84,
+    "temp": 61.9,
+    "type": "INT4 Frontier"
+  }
+];
 
-  // 2. STATE MANAGEMENT
   let chart = null;
   const state = {
-    experiment: 'granularity', // 'granularity' | 'slc' | 'pareto'
-    subview: 'all',            // granularity: 'all' | 'collapse' | 'throughput'
-                               // slc: 'bw' | 'latency'
-                               // pareto: 'energy' | 'power'
-    hoverIndex: 8              // default G=256
+    experiment: 'granularity',
+    subview: 'all',
+    hoverIndex: 8
   };
 
   function getLumiTokens() {
@@ -1374,6 +1669,8 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
       chart10: getVal('--chart-10', '#c84288'),
       errorColor: getVal('--error', '#de2d29'),
       primaryColor: getVal('--primary', '#3186ff'),
+      purpleColor: '#7c3aed',
+      tealColor: '#0d9488',
       alpha: function(c, a) {
         c = ('' + c).trim();
         if (c.charAt(0) === '#') {
@@ -1386,7 +1683,6 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
     };
   }
 
-  // 3. UI RENDERING
   function renderSubviews() {
     const c = document.getElementById('subview-controls');
     if (!c) return;
@@ -1394,23 +1690,23 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
 
     if (state.experiment === 'granularity') {
       buttons = [
-        { id: 'all', label: 'All Regimes (Warm vs. Cold)' },
-        { id: 'collapse', label: 'Starvation Collapse (G &ge; 128)' },
-        { id: 'throughput', label: 'Sustained GEMV/s' }
+        { id: 'all', label: 'All Regimes (Warm SLC vs. Cold DRAM)' },
+        { id: 'collapse', label: 'SIMD Starvation Collapse (G ≥ 128)' },
+        { id: 'throughput', label: 'Sustained GEMV/s (Measured N=5)' }
       ];
     } else if (state.experiment === 'slc') {
       buttons = [
         { id: 'bw', label: 'Effective Bandwidth (GB/s)' },
-        { id: 'latency', label: 'Kernel Latency (&mu;s)' }
+        { id: 'latency', label: 'Kernel Latency (µs)' }
       ];
     } else if (state.experiment === 'pareto') {
       buttons = [
-        { id: 'energy', label: 'Energy (Joules) vs. Throughput' },
+        { id: 'scatter', label: '2D Pareto Scatter (J/1k vs. GEMV/s)' },
         { id: 'power', label: 'GPU Active Power (Watts)' }
       ];
     }
 
-    c.innerHTML = buttons.map((b, idx) => `
+    c.innerHTML = buttons.map(b => `
       <button class="segmented-btn ${b.id === state.subview ? 'is-active' : ''}" data-subview="${b.id}">
         ${b.label}
       </button>
@@ -1433,72 +1729,75 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
 
     if (state.experiment === 'granularity') {
       const rec = DATA_GRANULARITY[state.hoverIndex] || DATA_GRANULARITY[8];
+      const dropPct = (((rec.cold_dram - rec.legacy) / rec.cold_dram) * 100).toFixed(1);
+
       deck.innerHTML = `
         <div class="metric-card">
-          <span class="metric-label">Peak Warm SLC (G=256)</span>
-          <span class="metric-value">${rec.warm_slc.toFixed(1)} GFLOPS</span>
-          <span class="metric-subtext" style="color: var(--positive, #008052);">&plus;5.2% Hardware lsr Shift</span>
+          <span class="metric-label">Warm SLC C4Tpl (${rec.label})</span>
+          <span class="metric-value">${rec.warm_c4} GFLOPS</span>
+          <span class="metric-subtext" style="color: var(--positive, #008052);">C1Tpl: ${rec.warm_c1} GFLOPS (N=20 reps)</span>
         </div>
         <div class="metric-card">
-          <span class="metric-label">Cold DRAM Coalesced</span>
-          <span class="metric-value">${rec.cold_dram.toFixed(1)} GFLOPS</span>
-          <span class="metric-subtext" style="color: var(--primary, #3186ff);">MetalSlice C1Tpl Flat Roofline</span>
+          <span class="metric-label">Cold DRAM Coalesced (${rec.label})</span>
+          <span class="metric-value">${rec.cold_dram} GFLOPS</span>
+          <span class="metric-subtext" style="color: var(--primary, #3186ff);">MetalSlice C1Tpl Flat Plateau</span>
         </div>
         <div class="metric-card">
-          <span class="metric-label">Legacy Starvation (${rec.label})</span>
-          <span class="metric-value">${rec.legacy.toFixed(1)} GFLOPS</span>
-          <span class="metric-subtext" style="color: var(--error, #de2d29);">${rec.g >= 128 ? '-' + (((rec.cold_dram - rec.legacy)/rec.cold_dram)*100).toFixed(1) + '% Starvation Deficit' : 'Near-parity at small G'}</span>
+          <span class="metric-label">Legacy Strided (${rec.label})</span>
+          <span class="metric-value">${rec.legacy} GFLOPS</span>
+          <span class="metric-subtext" style="color: ${rec.g >= 128 ? 'var(--error, #de2d29)' : 'var(--on-surface-variant)'};">
+            ${rec.g >= 128 ? '-' + dropPct + '% Lane Starvation' : 'Near-parity at small G'}
+          </span>
         </div>
       `;
 
       if (rec.g >= 128) {
-        const deficit = (((rec.cold_dram - rec.legacy)/rec.cold_dram)*100).toFixed(1);
-        insight.innerHTML = `<span class="insight-highlight">At ${rec.label}:</span> Legacy thread-strided kernel collapses by <span class="insight-highlight">-${deficit}%</span> (${rec.legacy} GFLOPS) because only ${4608 / rec.g} threadgroups exist, leaving 72%&ndash;86% of SIMD lanes idle. MetalSlice coalesced loads keep all 32 lanes 100% utilized (${rec.cold_dram} GFLOPS).`;
+        insight.innerHTML = `<span class="insight-highlight">At ${rec.label}:</span> Legacy thread-strided kernel collapses by <span class="insight-highlight">-${dropPct}%</span> (${rec.legacy} GFLOPS) because only ${4608 / rec.g} quantization groups exist (<code>num_groups = K/G</code>), leaving 72%&ndash;86% of SIMD lanes idle. MetalSlice coalesced loads stream 128 bytes per SIMD step, keeping all 32 lanes 100% utilized (${rec.cold_dram} GFLOPS).`;
       } else if (rec.pot) {
-        insight.innerHTML = `<span class="insight-highlight">At ${rec.label} (Power-of-Two):</span> Warm SLC throughput reaches <span class="insight-highlight">${rec.warm_slc} GFLOPS</span> via 1-cycle bitwise right shift (<code>lsr</code>). In Cold DRAM, DRAM latency hides integer division entirely, resulting in flat memory bus saturation (${rec.cold_dram} GFLOPS).`;
+        insight.innerHTML = `<span class="insight-highlight">At ${rec.label} (Power-of-Two):</span> Warm SLC averages <span class="insight-highlight">${rec.warm_c4} GFLOPS</span> (C4Tpl) and ${rec.warm_c1} GFLOPS (C1Tpl). In Cold DRAM, LPDDR5X latency completely dominates integer division, yielding a flat roofline plateau across G in {64..256} (${rec.cold_dram} GFLOPS).`;
       } else {
-        insight.innerHTML = `<span class="insight-highlight">At ${rec.label} (Non-Power-of-Two):</span> In Warm SLC, non-PoT group sizes experience a ~5% latency increase due to 3-cycle reciprocal multiplication (<code>umulhi</code>), but sustain the full DRAM ceiling in Cold DRAM (${rec.cold_dram} GFLOPS).`;
+        insight.innerHTML = `<span class="insight-highlight">At ${rec.label} (Non-Power-of-Two):</span> In Warm SLC, G=72 achieves ${rec.warm_c4} GFLOPS (C4Tpl peak). In Cold DRAM, non-PoT group sizes incur zero throughput penalty (${rec.cold_dram} GFLOPS), refuting any runtime penalty on DRAM-bound workloads.`;
       }
     } else if (state.experiment === 'slc') {
       const rec = DATA_SLC[state.hoverIndex] || DATA_SLC[2];
       deck.innerHTML = `
         <div class="metric-card">
-          <span class="metric-label">On-Die SRAM Hit (Ring=1)</span>
-          <span class="metric-value">391.0 GB/s</span>
-          <span class="metric-subtext" style="color: var(--positive, #008052);">10.76 MB (100% Cache Resident)</span>
+          <span class="metric-label">On-Die SLC Hit (Ring 1..2)</span>
+          <span class="metric-value">357.2–391.0 GB/s</span>
+          <span class="metric-subtext" style="color: var(--positive, #008052);">≤ 21.5 MB (1,342–1,469 GFLOPS)</span>
         </div>
         <div class="metric-card">
-          <span class="metric-label">Cache Cliff Boundary</span>
-          <span class="metric-value">32&ndash;44 MB</span>
-          <span class="metric-subtext" style="color: var(--error, #de2d29);">-31.5% Bandwidth Drop</span>
+          <span class="metric-label">SLC Eviction Boundary</span>
+          <span class="metric-value">21.5–43.0 MB</span>
+          <span class="metric-subtext" style="color: var(--error, #de2d29);">-31.5% Bandwidth Transition</span>
         </div>
         <div class="metric-card">
-          <span class="metric-label">Cold DRAM Saturation</span>
-          <span class="metric-value">259.3 GB/s</span>
+          <span class="metric-label">Cold DRAM Saturation (≥43 MB)</span>
+          <span class="metric-value">259.3–267.8 GB/s</span>
           <span class="metric-subtext" style="color: var(--on-surface-variant);">Physical LPDDR5X Bus Ceiling</span>
         </div>
       `;
-      insight.innerHTML = `<span class="insight-highlight">System-Level Cache (SLC) Evasion:</span> Working sets &le; 21.5 MB hit on-die SRAM at 357&ndash;391 GB/s. Crossing the 32&ndash;44 MB boundary forces cold DRAM fetches, settling at the physical DRAM limit (259&ndash;268 GB/s). Benchmarks must use &ge; 44 MB ring pools to avoid reporting phantom SRAM speeds!`;
+      insight.innerHTML = `<span class="insight-highlight">System-Level Cache (SLC) Evasion:</span> Working sets ≤ 21.5 MB hit on-die SRAM at 357–391 GB/s. Crossing the 21.5–43 MB boundary forces cold DRAM fetches, settling at the physical DRAM limit (259–268 GB/s). Benchmarks must use ≥ 44 MB ring pools to avoid reporting phantom on-die SRAM speeds!`;
     } else if (state.experiment === 'pareto') {
       const rec = DATA_PARETO[state.hoverIndex] || DATA_PARETO[8];
       deck.innerHTML = `
         <div class="metric-card">
-          <span class="metric-label">FP16 Idle Power-Stall</span>
-          <span class="metric-value">9.25 Watts</span>
-          <span class="metric-subtext" style="color: var(--positive, #008052);">0.897 J / 1k GEMV (Low Clock P-State)</span>
+          <span class="metric-label">FP16 Low-Power Baseline</span>
+          <span class="metric-value">1.156 ± 0.057 J</span>
+          <span class="metric-subtext" style="color: var(--positive, #008052);">6,189 ops/s @ 10.7 W active (Memory-stalled)</span>
         </div>
         <div class="metric-card">
-          <span class="metric-label">INT4 Active ALU Power</span>
-          <span class="metric-value">${rec.power.toFixed(2)} Watts</span>
-          <span class="metric-subtext" style="color: var(--primary, #3186ff);">High DVFS Frequency Boost</span>
+          <span class="metric-label">Selected: ${rec.label}</span>
+          <span class="metric-value">${rec.energy.toFixed(3)} J / 1k</span>
+          <span class="metric-subtext" style="color: var(--primary, #3186ff);">${rec.gemv.toLocaleString()} ops/s @ ${rec.power} W</span>
         </div>
         <div class="metric-card">
-          <span class="metric-label">Speedup vs FP16 / FP32</span>
-          <span class="metric-value">${(rec.gemv / 6049.5).toFixed(2)}&times; / ${(rec.gemv / 3081.4).toFixed(2)}&times;</span>
-          <span class="metric-subtext" style="color: var(--positive, #008052);">Optimal Pareto Knee (${rec.label})</span>
+          <span class="metric-label">Speedup vs. FP16 / FP32</span>
+          <span class="metric-value">${(rec.gemv / 6188.7).toFixed(2)}× / ${(rec.gemv / 3159.3).toFixed(2)}×</span>
+          <span class="metric-subtext" style="color: var(--positive, #008052);">${rec.label.startsWith('INT4') ? 'High ALU Instruction Rate' : 'Baseline Precision'}</span>
         </div>
       `;
-      insight.innerHTML = `<span class="insight-highlight">DVFS Active Compute Scaling:</span> INT4 quantization trades passive DRAM memory-wait stalls (FP16 @ 9.25W) for active ALU nibble dequantization (INT4 @ 28.5W). INT4-G128 yields a <span class="insight-highlight">3.38&times; throughput speedup</span> while operating at 1.207 J / 1k GEMV (Welch's t-test p = 0.0015).`;
+      insight.innerHTML = `<span class="insight-highlight">DVFS Active Compute Scaling (N=5 Randomized Trials):</span> FP16 operates in a low-power memory-stalled state (10.7 W) achieving lowest energy (1.156 J / 1k GEMV). INT4 drives the GPU into active dequantization ALU compute (30.5–31.2 W), delivering 3.3× speedup over FP16 (6.6× over FP32) at 1.26–1.33 J (44.2% lower energy than FP32). Welch's t-test: t = -4.10, p = 0.0048. Within INT4 G in {64..256}, energy differences are within noise (p ≥ 0.50).`;
     }
   }
 
@@ -1507,84 +1806,123 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
       const labels = DATA_GRANULARITY.map(d => d.label);
 
       if (state.subview === 'throughput') {
+        // Filter only configs where telemetry was measured
+        const measured = DATA_GRANULARITY.filter(d => d.gemv !== null);
         return {
-          labels,
-          datasets: [{
-            label: 'Sustained Throughput (GEMV/s)',
-            data: DATA_GRANULARITY.map(d => d.gemv),
-            borderColor: t.primaryColor,
-            backgroundColor: t.alpha(t.primaryColor, 0.15),
-            borderWidth: 2.5,
-            fill: true,
-            pointRadius: 5,
-            pointBackgroundColor: t.surfaceColor,
-            tension: 0.35
-          }]
+          type: 'line',
+          data: {
+            labels: measured.map(d => d.label),
+            datasets: [{
+              label: 'Measured Sustained GEMV/s (N=5, ±1 SD)',
+              data: measured.map(d => d.gemv),
+              borderColor: t.primaryColor,
+              backgroundColor: t.alpha(t.primaryColor, 0.15),
+              borderWidth: 2.5,
+              fill: true,
+              pointRadius: 6,
+              pointBackgroundColor: t.surfaceColor,
+              tension: 0.15
+            }]
+          },
+          options: {
+            scales: {
+              x: { grid: { display: false }, ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor } },
+              y: { grid: { color: t.gridColor }, min: 18000, max: 21500, ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor } }
+            }
+          }
         };
       }
 
       if (state.subview === 'collapse') {
         return {
-          labels,
-          datasets: [
-            {
-              label: 'Cold DRAM Coalesced (MetalSlice C1Tpl)',
-              data: DATA_GRANULARITY.map(d => d.cold_dram),
-              borderColor: t.chart3,
-              borderWidth: 2.5,
-              pointRadius: 5,
-              pointBackgroundColor: t.surfaceColor,
-              tension: 0.35
-            },
-            {
-              label: 'Cold DRAM Legacy Strided (Starvation Collapse)',
-              data: DATA_GRANULARITY.map(d => d.legacy),
-              borderColor: t.errorColor,
-              borderWidth: 2.5,
-              borderDash: [5, 5],
-              pointStyle: 'rectRot',
-              pointRadius: 6,
-              pointBackgroundColor: t.surfaceColor,
-              tension: 0.35
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Cold DRAM Coalesced (MetalSlice C1Tpl)',
+                data: DATA_GRANULARITY.map(d => d.cold_dram),
+                borderColor: t.primaryColor,
+                borderWidth: 2.5,
+                pointRadius: 6,
+                pointBackgroundColor: t.surfaceColor,
+                tension: 0.15
+              },
+              {
+                label: 'Cold DRAM Legacy Strided (Starvation Collapse)',
+                data: DATA_GRANULARITY.map(d => d.legacy),
+                borderColor: t.errorColor,
+                borderWidth: 2.5,
+                borderDash: [5, 5],
+                pointStyle: 'rectRot',
+                pointRadius: 6,
+                pointBackgroundColor: t.surfaceColor,
+                tension: 0.15
+              }
+            ]
+          },
+          options: {
+            scales: {
+              x: { grid: { display: false }, ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor } },
+              y: { grid: { color: t.gridColor }, min: 600, max: 1200, ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor } }
             }
-          ]
+          }
         };
       }
 
       // 'all'
       return {
-        labels,
-        datasets: [
-          {
-            label: 'Warm SLC Coalesced (C4Tpl/C1Tpl)',
-            data: DATA_GRANULARITY.map(d => d.warm_slc),
-            borderColor: t.chart1,
-            borderWidth: 2.5,
-            pointRadius: 5,
-            pointBackgroundColor: t.surfaceColor,
-            tension: 0.35
-          },
-          {
-            label: 'Cold DRAM Coalesced (MetalSlice C1Tpl)',
-            data: DATA_GRANULARITY.map(d => d.cold_dram),
-            borderColor: t.chart3,
-            borderWidth: 2.5,
-            pointRadius: 5,
-            pointBackgroundColor: t.surfaceColor,
-            tension: 0.35
-          },
-          {
-            label: 'Cold DRAM Legacy Strided',
-            data: DATA_GRANULARITY.map(d => d.legacy),
-            borderColor: t.chart10,
-            borderWidth: 2,
-            borderDash: [4, 4],
-            pointStyle: 'triangle',
-            pointRadius: 5,
-            pointBackgroundColor: t.surfaceColor,
-            tension: 0.35
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Warm SLC C4Tpl (N=20 Reps)',
+              data: DATA_GRANULARITY.map(d => d.warm_c4),
+              borderColor: t.purpleColor,
+              borderWidth: 2.5,
+              pointRadius: 5.5,
+              pointBackgroundColor: t.surfaceColor,
+              tension: 0.15
+            },
+            {
+              label: 'Warm SLC C1Tpl (N=20 Reps)',
+              data: DATA_GRANULARITY.map(d => d.warm_c1),
+              borderColor: t.tealColor,
+              borderWidth: 2,
+              borderDash: [3, 3],
+              pointRadius: 4.5,
+              pointBackgroundColor: t.surfaceColor,
+              tension: 0.15
+            },
+            {
+              label: 'Cold DRAM Coalesced C1Tpl',
+              data: DATA_GRANULARITY.map(d => d.cold_dram),
+              borderColor: t.primaryColor,
+              borderWidth: 2.5,
+              pointRadius: 6,
+              pointBackgroundColor: t.surfaceColor,
+              tension: 0.15
+            },
+            {
+              label: 'Cold DRAM Legacy Strided',
+              data: DATA_GRANULARITY.map(d => d.legacy),
+              borderColor: t.errorColor,
+              borderWidth: 2,
+              borderDash: [5, 5],
+              pointStyle: 'triangle',
+              pointRadius: 5,
+              pointBackgroundColor: t.surfaceColor,
+              tension: 0.15
+            }
+          ]
+        },
+        options: {
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor } },
+            y: { grid: { color: t.gridColor }, min: 600, max: 1700, ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor } }
           }
-        ]
+        }
       };
     }
 
@@ -1592,69 +1930,119 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
       const labels = DATA_SLC.map(d => `${d.ring}x (${d.mb}M)`);
       if (state.subview === 'latency') {
         return {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'GPU Execution Latency (µs)',
+              data: DATA_SLC.map(d => d.us),
+              borderColor: t.chart10,
+              backgroundColor: t.alpha(t.chart10, 0.15),
+              borderWidth: 2.5,
+              fill: true,
+              pointRadius: 5,
+              pointBackgroundColor: t.surfaceColor,
+              stepped: 'middle'
+            }]
+          },
+          options: {
+            scales: {
+              x: { grid: { display: false }, ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor } },
+              y: { grid: { color: t.gridColor }, min: 20, max: 50, ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor } }
+            }
+          }
+        };
+      }
+      return {
+        type: 'line',
+        data: {
           labels,
           datasets: [{
-            label: 'GPU Execution Latency (&mu;s)',
-            data: DATA_SLC.map(d => d.us),
-            borderColor: t.chart10,
-            backgroundColor: t.alpha(t.chart10, 0.15),
+            label: 'Effective Memory Bandwidth (GB/s)',
+            data: DATA_SLC.map(d => d.bw),
+            borderColor: t.primaryColor,
+            backgroundColor: t.alpha(t.primaryColor, 0.15),
             borderWidth: 2.5,
             fill: true,
             pointRadius: 5,
             pointBackgroundColor: t.surfaceColor,
             stepped: 'middle'
           }]
-        };
-      }
-      // 'bw'
-      return {
-        labels,
-        datasets: [{
-          label: 'Effective Memory Bandwidth (GB/s)',
-          data: DATA_SLC.map(d => d.bw),
-          borderColor: t.primaryColor,
-          backgroundColor: t.alpha(t.primaryColor, 0.15),
-          borderWidth: 2.5,
-          fill: true,
-          pointRadius: 5,
-          pointBackgroundColor: t.surfaceColor,
-          stepped: 'middle'
-        }]
+        },
+        options: {
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor } },
+            y: { grid: { color: t.gridColor }, min: 0, max: 420, ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor } }
+          }
+        }
       };
     }
 
     if (state.experiment === 'pareto') {
-      const labels = DATA_PARETO.map(d => d.label);
       if (state.subview === 'power') {
         return {
-          labels,
-          datasets: [{
-            label: 'GPU Active Power (Watts)',
-            data: DATA_PARETO.map(d => d.power),
-            borderColor: t.errorColor,
-            backgroundColor: t.alpha(t.errorColor, 0.15),
-            borderWidth: 2.5,
-            fill: true,
-            pointRadius: 6,
-            pointBackgroundColor: t.surfaceColor,
-            tension: 0.35
-          }]
+          type: 'bar',
+          data: {
+            labels: DATA_PARETO.map(d => d.label),
+            datasets: [{
+              label: 'GPU Active Power (Watts, N=5 Mean ± SD)',
+              data: DATA_PARETO.map(d => d.power),
+              backgroundColor: DATA_PARETO.map(d => d.precision === 'fp16' ? t.chart3 : (d.precision === 'fp32' ? t.deEmphasisColor : t.primaryColor)),
+              borderRadius: 6
+            }]
+          },
+          options: {
+            scales: {
+              x: { grid: { display: false }, ticks: { font: { family: t.monoFamily, size: 11 }, color: t.deEmphasisColor } },
+              y: { grid: { color: t.gridColor }, min: 0, max: 36, ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor } }
+            }
+          }
         };
       }
-      // 'energy'
+
+      // TRUE 2D SCATTER PLOT FOR PARETO FRONTIER!
+      const scatterPoints = DATA_PARETO.map(d => ({
+        x: d.gemv,
+        y: d.energy,
+        label: d.label,
+        power: d.power,
+        gemv_sd: d.gemv_sd,
+        energy_sd: d.energy_sd,
+        type: d.type
+      }));
+
       return {
-        labels,
-        datasets: [
-          {
-            label: 'Energy (Joules / 1k GEMV)',
-            data: DATA_PARETO.map(d => d.energy),
-            borderColor: t.chart3,
-            borderWidth: 2.5,
-            pointRadius: 6,
-            pointBackgroundColor: t.surfaceColor,
-            tension: 0.35
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Pareto Frontier Points (N=5, ±1 SD)',
+            data: scatterPoints,
+            pointBackgroundColor: scatterPoints.map(p => p.type === 'Lowest Energy' ? t.chart3 : (p.type === 'Baseline' ? '#64748b' : t.primaryColor)),
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: scatterPoints.map(p => p.type === 'Lowest Energy' ? 9 : 7)
+          }]
+        },
+        options: {
+          scales: {
+            x: {
+              type: 'linear',
+              position: 'bottom',
+              min: 0,
+              max: 23000,
+              title: { display: true, text: 'Sustained GEMV Throughput (ops/s) → Higher is Better', color: t.textColor, font: { family: t.fontFamily, size: 12, weight: '600' } },
+              grid: { color: t.gridColor },
+              ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor }
+            },
+            y: {
+              min: 0.0,
+              max: 2.6,
+              title: { display: true, text: 'Net Energy (J / 1k GEMV) → Lower is Better', color: t.textColor, font: { family: t.fontFamily, size: 12, weight: '600' } },
+              grid: { color: t.gridColor },
+              ticks: { font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor }
+            }
           }
-        ]
+        }
       };
     }
   }
@@ -1662,13 +2050,13 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
   function renderLegend(datasets) {
     const legendEl = document.getElementById('chart-legend');
     if (!legendEl) return;
-    if (datasets.length <= 1) {
+    if (!datasets || datasets.length <= 1) {
       legendEl.innerHTML = '';
       return;
     }
     legendEl.innerHTML = datasets.map(ds => `
       <div style="display: flex; align-items: center; gap: 6px;">
-        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${ds.borderColor};"></span>
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${ds.borderColor || ds.backgroundColor};"></span>
         <span>${ds.label}</span>
       </div>
     `).join('');
@@ -1679,36 +2067,12 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
     const t = getLumiTokens();
     const cfg = getChartConfig(t);
 
-    chart.data.labels = cfg.labels;
-    chart.data.datasets = cfg.datasets;
-
-    chart.options.scales.x.ticks.color = t.deEmphasisColor;
-    chart.options.scales.y.ticks.color = t.deEmphasisColor;
-    chart.options.scales.y.grid.color = t.gridColor;
-
-    chart.options.plugins.tooltip.backgroundColor = t.surfaceColor;
-    chart.options.plugins.tooltip.titleColor = t.textColor;
-    chart.options.plugins.tooltip.bodyColor = t.deEmphasisColor;
-    chart.options.plugins.tooltip.borderColor = t.gridColor;
-
-    chart.update();
-    renderLegend(cfg.datasets);
-    updateKPIs();
-  }
-
-  function initChart() {
+    chart.destroy();
     const ctx = document.getElementById('benchmarkChart').getContext('2d');
-    const t = getLumiTokens();
-
-    Chart.defaults.font.family = t.fontFamily;
-    Chart.defaults.color = t.deEmphasisColor;
-
-    const cfg = getChartConfig(t);
-
     chart = new Chart(ctx, {
-      type: 'line',
-      data: cfg,
-      options: {
+      type: cfg.type,
+      data: cfg.data,
+      options: Object.assign({
         responsive: true,
         maintainAspectRatio: false,
         layout: { padding: { top: 10, right: 10, bottom: 5, left: 5 } },
@@ -1725,36 +2089,41 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
             titleFont: { family: t.monoFamily, size: 13, weight: '600' },
             bodyFont: { family: t.monoFamily, size: 12 },
             callbacks: {
+              title: function(items) {
+                if (!items.length) return '';
+                const idx = items[0].dataIndex;
+                if (state.experiment === 'granularity') {
+                  return DATA_GRANULARITY[idx].label;
+                }
+                if (state.experiment === 'slc') {
+                  return DATA_SLC[idx].ring + 'x (' + DATA_SLC[idx].mb + ' MB)';
+                }
+                if (state.experiment === 'pareto') {
+                  return DATA_PARETO[idx].label + ' (' + DATA_PARETO[idx].type + ')';
+                }
+                return '';
+              },
               afterBody: function(items) {
                 if (!items.length) return '';
                 const idx = items[0].dataIndex;
                 if (state.experiment === 'granularity') {
                   const rec = DATA_GRANULARITY[idx];
-                  return `Energy: ${rec.energy} J / 1k GEMV\nThroughput: ${rec.gemv} GEMV/s`;
+                  let lines = [`Cold DRAM C1Tpl: ${rec.cold_dram} GFLOPS`, `Warm SLC C4Tpl: ${rec.warm_c4} GFLOPS`];
+                  if (rec.gemv) lines.push(`GEMV/s: ${rec.gemv.toLocaleString()} ± ${rec.gemv_sd}`);
+                  if (rec.energy) lines.push(`Energy: ${rec.energy} ± ${rec.energy_sd} J`);
+                  return lines.join('\n');
                 }
                 if (state.experiment === 'slc') {
                   const rec = DATA_SLC[idx];
-                  return `Ring Working Set: ${rec.mb} MB (${rec.regime})\nLatency: ${rec.us} \u00B5s`;
+                  return `Bandwidth: ${rec.bw} GB/s\nLatency: ${rec.us} µs\nCompute: ${rec.gflops} GFLOPS\nRegime: ${rec.regime}`;
                 }
                 if (state.experiment === 'pareto') {
                   const rec = DATA_PARETO[idx];
-                  return `Throughput: ${rec.gemv} GEMV/s\nPower: ${rec.power} W (${rec.temp} \u00B0C)`;
+                  return `Throughput: ${rec.gemv.toLocaleString()} ± ${rec.gemv_sd} ops/s\nEnergy: ${rec.energy} ± ${rec.energy_sd} J/1k\nActive Power: ${rec.power} ± ${rec.power_sd} W\nGPU Temp: ${rec.temp} °C`;
                 }
                 return '';
               }
             }
-          }
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            border: { display: false },
-            ticks: { padding: 8, font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor }
-          },
-          y: {
-            grid: { color: t.gridColor, drawBorder: false },
-            border: { display: false },
-            ticks: { padding: 8, font: { family: t.monoFamily, size: 12 }, color: t.deEmphasisColor, maxTicksLimit: 6 }
           }
         },
         onHover: (evt, elements) => {
@@ -1763,32 +2132,36 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
             updateKPIs();
           }
         }
-      }
+      }, cfg.options)
     });
 
-    renderLegend(cfg.datasets);
+    renderLegend(cfg.data.datasets);
     updateKPIs();
   }
 
-  // 4. EVENT LISTENERS
+  function initChart() {
+    const t = getLumiTokens();
+    Chart.defaults.font.family = t.fontFamily;
+    Chart.defaults.color = t.deEmphasisColor;
+    updateChart();
+  }
+
   document.querySelectorAll('.main-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.main-tab-btn').forEach(b => b.classList.remove('is-active'));
       btn.classList.add('is-active');
       state.experiment = btn.dataset.experiment;
 
-      // Set default subviews
       if (state.experiment === 'granularity') state.subview = 'all';
       else if (state.experiment === 'slc') state.subview = 'bw';
-      else if (state.experiment === 'pareto') state.subview = 'energy';
-      state.hoverIndex = 0;
+      else if (state.experiment === 'pareto') state.subview = 'scatter';
+      state.hoverIndex = 8;
 
       renderSubviews();
       updateChart();
     });
   });
 
-  // Theme toggle button
   const themeBtn = document.getElementById('theme-toggle-btn');
   if (themeBtn) {
     themeBtn.addEventListener('click', () => {
@@ -1801,7 +2174,6 @@ button.active, button.is-active, button.selected, button.is-selected, button[ari
     });
   }
 
-  // Init sequence
   renderSubviews();
   if (typeof Chart !== 'undefined') {
     initChart();

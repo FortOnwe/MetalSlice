@@ -1,4 +1,4 @@
-<svg width="1100" height="580" xmlns="http://www.w3.org/2000/svg">
+<svg width="1100" height="600" viewBox="0 0 1100 600" xmlns="http://www.w3.org/2000/svg">
   <style>
     .bg { fill: #ffffff; }
     .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 21px; font-weight: 700; fill: #0f172a; }
@@ -7,98 +7,111 @@
     .grid { stroke: #e2e8f0; stroke-width: 1; stroke-dasharray: 4,4; }
     .axis-line { stroke: #94a3b8; stroke-width: 1.5; }
     .tick-hdr { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 700; fill: #0f172a; }
-    .tick-sub { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 600; fill: #0284c7; }
-    .line-c4slc { stroke: #7c3aed; stroke-width: 3.5; fill: none; }
+    .tick-sub { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 600; }
+    .line-c4slc { stroke: #7c3aed; stroke-width: 3.2; fill: none; }
+    .line-c1slc { stroke: #0d9488; stroke-width: 2.5; stroke-dasharray: 3,3; fill: none; }
     .line-c1dram { stroke: #2563eb; stroke-width: 3.5; fill: none; }
     .line-leg { stroke: #dc2626; stroke-width: 2.5; stroke-dasharray: 6,4; fill: none; }
   </style>
-  <rect width="1100" height="580" class="bg" rx="14" stroke="#cbd5e1" stroke-width="1.5"/>
-  <text x="110" y="42" class="title">Ablation 3: Group Granularity &amp; Architecture Scaling</text>
-  <text x="110" y="65" class="subtitle">Effective Compute (GFLOPS) across Group Sizes G ∈ [16, 256] | Matrix: 4608×4608</text>
-  <line x1="460" y1="36" x2="484" y2="36" class="line-c4slc"/>
-  <text x="490" y="40" font-family="-apple-system, sans-serif" font-size="11px" font-weight="600" fill="#7c3aed">Warm SLC (C4Tpl, 4-Row Register Tiled)</text>
-  <line x1="460" y1="58" x2="484" y2="58" class="line-c1dram"/>
-  <text x="490" y="62" font-family="-apple-system, sans-serif" font-size="11px" font-weight="600" fill="#2563eb">Cold DRAM (MetalSlice C1Tpl) — Peak at NPOT G=72, 96</text>
-  <line x1="810" y1="58" x2="834" y2="58" class="line-leg"/>
-  <text x="840" y="62" font-family="-apple-system, sans-serif" font-size="11px" font-weight="600" fill="#dc2626">Legacy Strided (Starves at G ≥ 128)</text>
-  <line x1="110" y1="358.0" x2="1040" y2="358.0" class="grid"/>
-  <text x="96" y="362.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">600</text>
-  <line x1="110" y1="314.0" x2="1040" y2="314.0" class="grid"/>
-  <text x="96" y="318.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">800</text>
-  <line x1="110" y1="270.0" x2="1040" y2="270.0" class="grid"/>
-  <text x="96" y="274.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">1000</text>
-  <line x1="110" y1="226.0" x2="1040" y2="226.0" class="grid"/>
-  <text x="96" y="230.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">1200</text>
-  <line x1="110" y1="182.0" x2="1040" y2="182.0" class="grid"/>
-  <text x="96" y="186.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">1400</text>
-  <line x1="110" y1="138.0" x2="1040" y2="138.0" class="grid"/>
-  <text x="96" y="142.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">1600</text>
-  <line x1="110" y1="490" x2="1040" y2="490" class="axis-line"/>
-  <line x1="110" y1="105" x2="110" y2="490" class="axis-line"/>
-  <text x="575.0" y="555" class="axis-title" text-anchor="middle">Quantization Group Size (G) → Finer (Left) to Coarser (Right)</text>
-  <text x="32" y="297.5" class="axis-title" text-anchor="middle" transform="rotate(-90 32 297.5)">Effective Compute (GFLOPS)</text>
-  <line x1="110.0" y1="105" x2="110.0" y2="490" class="grid"/>
-  <text x="110.0" y="510" class="tick-hdr" text-anchor="middle">G=16</text>
-  <text x="110.0" y="524" class="tick-sub" fill="#64748b" text-anchor="middle">POT</text>
-  <line x1="226.25" y1="105" x2="226.25" y2="490" class="grid"/>
-  <text x="226.25" y="510" class="tick-hdr" text-anchor="middle">G=24</text>
-  <text x="226.25" y="524" class="tick-sub" fill="#0284c7" text-anchor="middle">NPOT</text>
-  <line x1="342.5" y1="105" x2="342.5" y2="490" class="grid"/>
-  <text x="342.5" y="510" class="tick-hdr" text-anchor="middle">G=32</text>
-  <text x="342.5" y="524" class="tick-sub" fill="#64748b" text-anchor="middle">POT</text>
-  <line x1="458.75" y1="105" x2="458.75" y2="490" class="grid"/>
-  <text x="458.75" y="510" class="tick-hdr" text-anchor="middle">G=48</text>
-  <text x="458.75" y="524" class="tick-sub" fill="#0284c7" text-anchor="middle">NPOT</text>
-  <line x1="575.0" y1="105" x2="575.0" y2="490" class="grid"/>
-  <text x="575.0" y="510" class="tick-hdr" text-anchor="middle">G=64</text>
-  <text x="575.0" y="524" class="tick-sub" fill="#64748b" text-anchor="middle">POT</text>
-  <line x1="691.25" y1="105" x2="691.25" y2="490" class="grid"/>
-  <text x="691.25" y="510" class="tick-hdr" text-anchor="middle">G=72</text>
-  <text x="691.25" y="524" class="tick-sub" fill="#0284c7" text-anchor="middle">NPOT</text>
-  <line x1="807.5" y1="105" x2="807.5" y2="490" class="grid"/>
-  <text x="807.5" y="510" class="tick-hdr" text-anchor="middle">G=96</text>
-  <text x="807.5" y="524" class="tick-sub" fill="#0284c7" text-anchor="middle">NPOT</text>
-  <line x1="923.75" y1="105" x2="923.75" y2="490" class="grid"/>
-  <text x="923.75" y="510" class="tick-hdr" text-anchor="middle">G=128</text>
-  <text x="923.75" y="524" class="tick-sub" fill="#64748b" text-anchor="middle">POT</text>
-  <line x1="1040.0" y1="105" x2="1040.0" y2="490" class="grid"/>
-  <text x="1040.0" y="510" class="tick-hdr" text-anchor="middle">G=256</text>
-  <text x="1040.0" y="524" class="tick-sub" fill="#64748b" text-anchor="middle">POT</text>
-  <polyline points="110.0,194.32 226.25,167.3986 342.5,176.57260000000002 458.75,157.99580000000003 575.0,162.63119999999998 691.25,160.42020000000002 807.5,154.6606 923.75,152.7532 1040.0,161.7776" class="line-c4slc"/>
-  <polyline points="110.0,305.56916 226.25,290.73654 342.5,280.02452 458.75,276.59604 575.0,272.90290000000005 691.25,268.383 807.5,267.283 923.75,269.5468 1040.0,266.7836" class="line-c1dram"/>
-  <polyline points="110.0,311.58594 226.25,295.86364 342.5,284.4694 458.75,278.45834 575.0,276.33556 691.25,276.39276 807.5,280.58838000000003 923.75,301.44966 1040.0,323.12142" class="line-leg"/>
-  <circle cx="110.0" cy="194.32" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="110.0" cy="305.56916" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="110.0" cy="311.58594" r="5.5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="226.25" cy="167.3986" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="226.25" cy="290.73654" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="226.25" cy="295.86364" r="5.5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="342.5" cy="176.57260000000002" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="342.5" cy="280.02452" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="342.5" cy="284.4694" r="5.5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="458.75" cy="157.99580000000003" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="458.75" cy="276.59604" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="458.75" cy="278.45834" r="5.5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="575.0" cy="162.63119999999998" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="575.0" cy="272.90290000000005" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="575.0" cy="276.33556" r="5.5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="691.25" cy="160.42020000000002" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="691.25" cy="268.383" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
-  <rect x="626.25" y="282.383" width="130" height="22" rx="4" fill="#0d9488"/>
-  <text x="691.25" y="297.383" font-family="-apple-system, sans-serif" font-size="10px" font-weight="700" fill="#ffffff" text-anchor="middle">NPOT G=72: 982 GFLOPS</text>
-  <circle cx="691.25" cy="276.39276" r="5.5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="807.5" cy="154.6606" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="807.5" cy="267.283" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
-  <rect x="732.5" y="231.28300000000002" width="150" height="24" rx="5" fill="#0284c7"/>
-  <text x="807.5" y="247.28300000000002" font-family="-apple-system, sans-serif" font-size="11px" font-weight="700" fill="#ffffff" text-anchor="middle">★ Cold Peak: 1,003 GFLOPS</text>
-  <line x1="807.5" y1="267.283" x2="807.5" y2="255.28300000000002" stroke="#0284c7" stroke-width="1.5"/>
-  <circle cx="807.5" cy="280.58838000000003" r="5.5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="923.75" cy="152.7532" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="923.75" cy="269.5468" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="923.75" cy="301.44966" r="5.5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="1040.0" cy="161.7776" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="1040.0" cy="266.7836" r="6.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
-  <circle cx="1040.0" cy="323.12142" r="5.5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
-  <rect x="890.0" y="337.12142" width="160" height="24" rx="5" fill="#dc2626"/>
-  <text x="970.0" y="353.12142" font-family="-apple-system, sans-serif" font-size="11px" font-weight="700" fill="#ffffff" text-anchor="middle">Legacy Starvation: -29.1%</text>
+  <rect width="1100" height="600" class="bg" rx="14" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="100" y="38" class="title">Ablation 3: Group Granularity &amp; Kernel Architecture Scaling (4608×4608)</text>
+  <text x="100" y="60" class="subtitle">Warm SLC (N=20 randomized reps; C1Tpl PoT +3.6%, C4Tpl PoT -0.6%) vs. Cold DRAM Coalesced Plateau &amp; Legacy Starvation</text>
+  <rect x="100" y="74" width="940" height="24" rx="5" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+  <line x1="112" y1="86" x2="136" y2="86" class="line-c4slc"/>
+  <text x="142" y="90" font-family="-apple-system, sans-serif" font-size="11px" font-weight="600" fill="#7c3aed">Warm SLC C4Tpl (N=20)</text>
+  <line x1="315" y1="86" x2="339" y2="86" class="line-c1slc"/>
+  <text x="345" y="90" font-family="-apple-system, sans-serif" font-size="11px" font-weight="600" fill="#0d9488">Warm SLC C1Tpl (N=20)</text>
+  <line x1="520" y1="86" x2="544" y2="86" class="line-c1dram"/>
+  <text x="550" y="90" font-family="-apple-system, sans-serif" font-size="11px" font-weight="600" fill="#2563eb">Cold DRAM C1Tpl (Flat Plateau G ≥ 64)</text>
+  <line x1="805" y1="86" x2="829" y2="86" class="line-leg"/>
+  <text x="835" y="90" font-family="-apple-system, sans-serif" font-size="11px" font-weight="600" fill="#dc2626">Cold DRAM Legacy (Starves G ≥ 128)</text>
+  <line x1="100" y1="378.0" x2="1040" y2="378.0" class="grid"/>
+  <text x="86" y="382.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">600</text>
+  <line x1="100" y1="334.0" x2="1040" y2="334.0" class="grid"/>
+  <text x="86" y="338.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">800</text>
+  <line x1="100" y1="290.0" x2="1040" y2="290.0" class="grid"/>
+  <text x="86" y="294.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">1000</text>
+  <line x1="100" y1="246.0" x2="1040" y2="246.0" class="grid"/>
+  <text x="86" y="250.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">1200</text>
+  <line x1="100" y1="202.0" x2="1040" y2="202.0" class="grid"/>
+  <text x="86" y="206.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">1400</text>
+  <line x1="100" y1="158.0" x2="1040" y2="158.0" class="grid"/>
+  <text x="86" y="162.0" font-family="-apple-system, sans-serif" font-size="11px" fill="#64748b" text-anchor="end">1600</text>
+  <line x1="100" y1="510" x2="1040" y2="510" class="axis-line"/>
+  <line x1="100" y1="125" x2="100" y2="510" class="axis-line"/>
+  <text x="570.0" y="575" class="axis-title" text-anchor="middle">Quantization Group Size (G) → Finer (Left) to Coarser (Right)</text>
+  <text x="32" y="317.5" class="axis-title" text-anchor="middle" transform="rotate(-90 32 317.5)">Effective Compute (GFLOPS)</text>
+  <line x1="100.0" y1="125" x2="100.0" y2="510" class="grid"/>
+  <text x="100.0" y="530" class="tick-hdr" text-anchor="middle">G=16</text>
+  <text x="100.0" y="544" class="tick-sub" fill="#64748b" text-anchor="middle">POT</text>
+  <line x1="217.5" y1="125" x2="217.5" y2="510" class="grid"/>
+  <text x="217.5" y="530" class="tick-hdr" text-anchor="middle">G=24</text>
+  <text x="217.5" y="544" class="tick-sub" fill="#0284c7" text-anchor="middle">NPOT</text>
+  <line x1="335.0" y1="125" x2="335.0" y2="510" class="grid"/>
+  <text x="335.0" y="530" class="tick-hdr" text-anchor="middle">G=32</text>
+  <text x="335.0" y="544" class="tick-sub" fill="#64748b" text-anchor="middle">POT</text>
+  <line x1="452.5" y1="125" x2="452.5" y2="510" class="grid"/>
+  <text x="452.5" y="530" class="tick-hdr" text-anchor="middle">G=48</text>
+  <text x="452.5" y="544" class="tick-sub" fill="#0284c7" text-anchor="middle">NPOT</text>
+  <line x1="570.0" y1="125" x2="570.0" y2="510" class="grid"/>
+  <text x="570.0" y="530" class="tick-hdr" text-anchor="middle">G=64</text>
+  <text x="570.0" y="544" class="tick-sub" fill="#64748b" text-anchor="middle">POT</text>
+  <line x1="687.5" y1="125" x2="687.5" y2="510" class="grid"/>
+  <text x="687.5" y="530" class="tick-hdr" text-anchor="middle">G=72</text>
+  <text x="687.5" y="544" class="tick-sub" fill="#0284c7" text-anchor="middle">NPOT</text>
+  <line x1="805.0" y1="125" x2="805.0" y2="510" class="grid"/>
+  <text x="805.0" y="530" class="tick-hdr" text-anchor="middle">G=96</text>
+  <text x="805.0" y="544" class="tick-sub" fill="#0284c7" text-anchor="middle">NPOT</text>
+  <line x1="922.5" y1="125" x2="922.5" y2="510" class="grid"/>
+  <text x="922.5" y="530" class="tick-hdr" text-anchor="middle">G=128</text>
+  <text x="922.5" y="544" class="tick-sub" fill="#64748b" text-anchor="middle">POT</text>
+  <line x1="1040.0" y1="125" x2="1040.0" y2="510" class="grid"/>
+  <text x="1040.0" y="530" class="tick-hdr" text-anchor="middle">G=256</text>
+  <text x="1040.0" y="544" class="tick-sub" fill="#64748b" text-anchor="middle">POT</text>
+  <polyline points="100.0,201.24616999999995 217.5,195.64761000000004 335.0,193.81534 452.5,178.75249000000002 570.0,182.2924 687.5,176.11941999999993 805.0,186.01436 922.5,183.31771000000003 1040.0,168.92806000000002" class="line-c4slc"/>
+  <polyline points="100.0,186.60561 217.5,201.93928 335.0,189.94873 452.5,195.12445000000002 570.0,184.22663999999997 687.5,197.08090999999996 805.0,202.71478000000002 922.5,194.06339000000003 1040.0,185.72528" class="line-c1slc"/>
+  <polyline points="100.0,325.56916 217.5,310.73654 335.0,300.02452 452.5,296.59604 570.0,292.90290000000005 687.5,288.383 805.0,287.283 922.5,289.5468 1040.0,286.7836" class="line-c1dram"/>
+  <polyline points="100.0,331.58594 217.5,315.86364 335.0,304.4694 452.5,298.45834 570.0,296.33556 687.5,296.39276 805.0,300.58838000000003 922.5,321.44966 1040.0,343.12142" class="line-leg"/>
+  <circle cx="100.0" cy="201.24616999999995" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="100.0" cy="186.60561" r="4.5" fill="#0d9488" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="100.0" cy="325.56916" r="6" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="100.0" cy="331.58594" r="5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="217.5" cy="195.64761000000004" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="217.5" cy="201.93928" r="4.5" fill="#0d9488" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="217.5" cy="310.73654" r="6" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="217.5" cy="315.86364" r="5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="335.0" cy="193.81534" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="335.0" cy="189.94873" r="4.5" fill="#0d9488" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="335.0" cy="300.02452" r="6" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="335.0" cy="304.4694" r="5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="452.5" cy="178.75249000000002" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="452.5" cy="195.12445000000002" r="4.5" fill="#0d9488" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="452.5" cy="296.59604" r="6" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="452.5" cy="298.45834" r="5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="570.0" cy="182.2924" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="570.0" cy="184.22663999999997" r="4.5" fill="#0d9488" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="570.0" cy="292.90290000000005" r="6" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="570.0" cy="296.33556" r="5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="687.5" cy="176.11941999999993" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="687.5" cy="197.08090999999996" r="4.5" fill="#0d9488" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="687.5" cy="288.383" r="6" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="687.5" cy="296.39276" r="5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="805.0" cy="186.01436" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="805.0" cy="202.71478000000002" r="4.5" fill="#0d9488" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="805.0" cy="287.283" r="6" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="805.0" cy="300.58838000000003" r="5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+  <rect x="723.0" y="251.28300000000002" width="164" height="22" rx="5" fill="#2563eb"/>
+  <text x="805.0" y="266.283" font-family="-apple-system, sans-serif" font-size="10.5px" font-weight="700" fill="#ffffff" text-anchor="middle">Cold Plateau: 987–1,015 GF</text>
+  <circle cx="922.5" cy="183.31771000000003" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="922.5" cy="194.06339000000003" r="4.5" fill="#0d9488" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="922.5" cy="289.5468" r="6" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="922.5" cy="321.44966" r="5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="1040.0" cy="168.92806000000002" r="5.5" fill="#7c3aed" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="1040.0" cy="185.72528" r="4.5" fill="#0d9488" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="1040.0" cy="286.7836" r="6" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+  <circle cx="1040.0" cy="343.12142" r="5" fill="#dc2626" stroke="#ffffff" stroke-width="2"/>
+  <rect x="875.0" y="136.92806000000002" width="170" height="22" rx="4" fill="#7c3aed"/>
+  <text x="960.0" y="151.92806000000002" font-family="-apple-system, sans-serif" font-size="10.5px" font-weight="700" fill="#ffffff" text-anchor="middle">C4Tpl SLC: 1550.3 GFLOPS</text>
+  <rect x="875.0" y="355.12142" width="170" height="24" rx="5" fill="#dc2626"/>
+  <text x="960.0" y="371.12142" font-family="-apple-system, sans-serif" font-size="11px" font-weight="700" fill="#ffffff" text-anchor="middle">Legacy Starvation: -25.2%</text>
 </svg>

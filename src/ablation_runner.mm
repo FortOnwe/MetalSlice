@@ -370,6 +370,50 @@ public:
                 << c4t_dram_us << "," << to_gf(c4t_dram_us) << "," << c4t_slc_us << "," << to_gf(c4t_slc_us) << "\n";
         }
     }
+
+    // Ablation 5: Repeated, order-randomized Warm-SLC trials (C1Tpl & C4Tpl) to test the
+    // power-of-two vs non-power-of-two claim with proper replication.
+    void runWarmSlcRepeats(const std::string& csv_path, uint32_t reps) {
+        std::cout << "\n[ABLATION 5] Warm-SLC replicated trials (" << reps << " reps, randomized G order)" << std::endl;
+        const uint32_t K = 4608, N = 4608;
+        std::vector<uint32_t> groups = {16, 24, 32, 48, 64, 72, 96, 128, 256};
+
+        std::map<uint32_t, std::vector<id<MTLBuffer>>> W, S;
+        for (uint32_t gs : groups) {
+            uint32_t ng = K / gs;
+            id<MTLBuffer> w = [device newBufferWithLength:N * (K / 2) options:MTLResourceStorageModeShared];
+            id<MTLBuffer> s = [device newBufferWithLength:N * ng * 2 options:MTLResourceStorageModeShared];
+            fill_buffer_deterministic([w contents], N * (K / 2), 111);
+            fill_buffer_deterministic([s contents], N * ng * 2, 222);
+            W[gs] = {w};
+            S[gs] = {s};
+        }
+        id<MTLBuffer> buf_X = [device newBufferWithLength:K * 2 options:MTLResourceStorageModeShared];
+        id<MTLBuffer> buf_Y = [device newBufferWithLength:N * 2 options:MTLResourceStorageModeShared];
+        fill_buffer_deterministic([buf_X contents], K * 2, 333);
+        fill_buffer_deterministic([buf_Y contents], N * 2, 444);
+
+        std::ofstream csv(csv_path);
+        csv << "rep,group_size,kernel,median_us,gflops\n";
+        double flops = 2.0 * (double)N * (double)K;
+        uint64_t rng = 0x1234567ULL;
+        for (uint32_t r = 0; r < reps; ++r) {
+            std::vector<uint32_t> order = groups;
+            for (size_t i = order.size() - 1; i > 0; --i) {
+                rng ^= rng << 13; rng ^= rng >> 7; rng ^= rng << 17;
+                std::swap(order[i], order[rng % (i + 1)]);
+            }
+            for (uint32_t gs : order) {
+                double c1 = measureKernelLatencyUs(pso_int4_1row_tpl[gs], MTLSizeMake((N + 3) / 4, 1, 1), MTLSizeMake(128, 1, 1),
+                    W[gs], S[gs], buf_X, buf_Y, K, N, gs, false, false);
+                double c4 = measureKernelLatencyUs(pso_int4_4row_tpl[gs], MTLSizeMake((N + 7) / 8, 1, 1), MTLSizeMake(64, 1, 1),
+                    W[gs], S[gs], buf_X, buf_Y, K, N, gs, false, false);
+                csv << r << "," << gs << ",C1Tpl," << c1 << "," << (flops / (c1 * 1e-6)) / 1e9 << "\n";
+                csv << r << "," << gs << ",C4Tpl," << c4 << "," << (flops / (c4 * 1e-6)) / 1e9 << "\n";
+            }
+            std::cout << "  rep " << (r + 1) << "/" << reps << " done" << std::endl;
+        }
+    }
 };
 
 int main(int argc, const char * argv[]) {
@@ -377,6 +421,11 @@ int main(int argc, const char * argv[]) {
         try {
             AblationSuite suite;
             std::string results_dir = "/Users/fo/Documents/Antigravity Test/metal_unified_memory_quant_study/results";
+
+            if (argc > 1 && std::string(argv[1]) == "warm-repeats") {
+                suite.runWarmSlcRepeats(results_dir + "/ablation_warm_slc_repeats.csv", 20);
+                return 0;
+            }
 
             suite.runRingSizeAblation(results_dir + "/ablation_ring_pool_slc.csv");
             suite.runBatchSizeAblation(results_dir + "/ablation_batch_dispatch.csv");

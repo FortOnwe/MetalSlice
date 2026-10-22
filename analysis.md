@@ -44,11 +44,11 @@ When weights reside in the on-die SLC (WARM_SLC), memory latency is low enough t
 1. **Dynamic Integer Division Penalty (`C1Dyn` vs. `C1Tpl`)**:
    - When `group_size` is passed as a runtime uniform (`C1Dyn`), the compiler emits a general integer division subroutine inside the inner loop, clamping Warm-SLC performance to **39.56–40.70 µs (1,043–1,073 GFLOPS)**.
    - Specializing `group_size` as a compile-time template constant (`C1Tpl`) reduces Warm-SLC latency to **28.57–30.40 µs (1,396–1,487 GFLOPS)**—a **+38.5% compute speedup** from eliminating runtime integer division alone.
-2. **Power-of-Two vs. Non-Power-of-Two Template Specialization in Warm-SLC**:
-   - Under `C1Tpl` in Warm-SLC, power-of-two group sizes (G ∈ {32, 64, 128, 256}) execute in **29.07–29.66 µs (1,431–1,460 GFLOPS)**, whereas non-power-of-two group sizes (G = 72, 96) execute in **29.62–30.40 µs (1,396–1,433 GFLOPS)** (~5.2% slower).
-   - **Microarchitectural Cause**: For power-of-two G, `elem_base / G` compiles to a single-cycle bitwise shift (`lsr`) and adjacent SIMD lanes share aligned scale indices, enabling uniform broadcast loads in the L1 data cache. For non-power-of-two G ∈ {24, 72, 96}, the compiler emits a 3-cycle multiply-high reciprocal sequence (`umulhi` + shift) and scale boundaries straddle power-of-two SIMD sub-warps.
-3. **4-Row Register Tiling (`C4Tpl`)**:
-   - Sharing the vector activation load and scale-index computation across 4 output rows per SIMDgroup (`C4Tpl`, 16 rows per threadgroup) pushes Warm-SLC throughput to **27.70 µs (1,532 GFLOPS)** at G = 128 and **27.86 µs (1,524 GFLOPS)** at G = 96.
+2. **Power-of-Two vs. Non-Power-of-Two Template Specialization in Warm-SLC ($N=20$ Replications)**:
+   - In 20 randomized-order trial replications (`results/ablation_warm_slc_repeats.csv`), power-of-two group sizes under `C1Tpl` average **`1,463.1 GFLOPS`** ($G \in \{16, 32, 64, 128, 256\}$) versus **`1,412.7 GFLOPS`** for non-power-of-two group sizes ($G \in \{24, 48, 72, 96\}$). This confirms a statistically significant **+3.57% PoT advantage** ($p < 0.001$, 95% bootstrap CI $[+3.56\%, +3.59\%]$).
+   - **Microarchitectural Cause**: For power-of-two G, `elem_base / G` compiles to a single-cycle bitwise shift (`lsr`) and adjacent SIMD lanes share aligned scale indices, enabling uniform broadcast loads in the L1 data cache. For non-power-of-two G ∈ {24, 48, 72, 96}, the compiler emits a 3-cycle multiply-high reciprocal sequence (`umulhi` + shift) and scale boundaries straddle power-of-two SIMD sub-warps.
+3. **4-Row Register Tiling (`C4Tpl`) Eliminates the Integer Division Penalty**:
+   - Sharing the vector activation load and scale-index computation across 4 output rows per SIMDgroup (`C4Tpl`, 16 rows per threadgroup) amortizes ALU overhead via instruction interleaving: non-PoT group sizes achieve **`1,481.2 GFLOPS`** versus PoT **`1,473.1 GFLOPS`** ($-0.55\%$), peaking at non-PoT $G=72$ (**`1,517.6 ± 0.7 GFLOPS`**) and $G=256$ (**`1,550.3 ± 1.0 GFLOPS`**).
 
 ### 2.2 Regime B: Cold-DRAM (LPDDR5X Memory Bus Bound — Hiding the NPOT ALU Penalty)
 When weights stream from unified LPDDR5X DRAM (COLD_DRAM), memory access latency (~250–284 GB/s bus ceiling) completely hides the 2-cycle ALU difference between `lsr` and `umulhi`:
@@ -78,22 +78,22 @@ At 8192×8192, `INT4-G64` and `INT4-G256` sustain **272.84 GB/s (1,026.2 GFLOPS)
 
 ## 4. The DVFS Power Law & Energy-Per-Operation Physics
 
-Our 3-trial continuous power telemetry (`results/ablation_multitrial_confirmation.csv`, `results/power_telemetry_rigorous.csv`) demonstrates why **reducing DRAM byte traffic does not linearly reduce Joules per operation**:
+Our 5-trial continuous power telemetry with randomized order and per-run local idle baseline subtraction (`results/ablation_multitrial_confirmation.csv`, `results/power_telemetry_rigorous.csv`, `results/energy_stats.json`) demonstrates why **reducing DRAM byte traffic does not linearly reduce Joules per operation**:
 
 $$\text{Net Energy per GEMV} = \frac{P_{\text{active}} - P_{\text{idle}}}{\text{Throughput}} = \frac{\Delta P_{\text{DRAM}} + \Delta P_{\text{GPU}}(V, f)}{\text{Throughput}}$$
 
 ![Throughput vs Energy Pareto Frontier](results/throughput_energy_pareto.svg)
 
 1. **LPDDR5X DRAM Power Is Constant Under Bus Saturation**:
-   - Across every single configuration from FP32 to INT4-G256, `ram_power_w` stays pinned between **9.59 W and 11.28 W** because all kernels saturate the unified memory bus (250–283 GB/s).
+   - Across every single configuration from FP32 to INT4-G256, `ram_power_w` stays pinned between **9.70 W and 10.96 W** because all kernels saturate the unified memory bus (250–284 GB/s).
 2. **GPU Dynamic Power Scales Super-Linearly with Dequantization ALU Throughput**:
-   - In **FP16** (6,049.5 ± 114.3 GEMV/s, 267 GFLOPS), no bitwise unpacking is performed. Memory read stalls hold the GPU in a low-voltage P-state (9.25 ± 0.21 W active package power, 5.42 W net power above the 3.83 W idle baseline). This yields the **Global Energy Minimum of 0.8974 ± 0.0488 J / 1k GEMV** (21.13 µJ / MParam).
-   - In **INT8-G64** (11,065.9 ± 92.8 GEMV/s, 499 GFLOPS), integer byte-sign extension and scale multiplication trigger a GPU P-state boost (21.14 ± 1.99 W active, 17.31 W net). Because power jumps by **3.19x** while throughput only rises by **1.83x**, net energy increases to **1.5646 ± 0.1800 J / 1k GEMV**.
-   - In **INT4-G64, INT4-G72, INT4-G96, and INT4-G128** (19,782–20,418 GEMV/s, 963–1,003 GFLOPS), high-frequency bitwise ALU unpacking drives the GPU into its full boost state (27.72–29.41 W active, 23.89–25.58 W net).
-   - **Welch's t-test: FP16 vs. INT4**: A two-sample Welch's t-test between FP16 (0.8974 ± 0.0488 J) and INT4-G128 (1.2072 ± 0.0291 J) yields **t = 9.45, p = 0.0015**, confirming that FP16 is statistically significantly lower in energy per operation by **25.7%**.
-   - **The Pareto Trade-off**: Rather than operating at energy parity with FP16, `INT4` represents the **Pareto Throughput Knee**: it trades +34.5% dynamic energy over FP16 to deliver a **3.38x throughput speedup** (`20,418` vs. `6,050 GEMV/s`), while still achieving a **48.2% net energy reduction compared to FP32** (`1.2072 ± 0.0291 J` vs. `2.3286 ± 0.1364 J / 1k GEMV`).
+   - In **FP16** (6,188.7 ± 45.3 GEMV/s, 267 GFLOPS), no bitwise unpacking is performed. Memory read stalls hold the GPU in a lower-frequency P-state (10.74 ± 2.34 W active package power, 7.16 W net power above the local idle baseline). This yields the **Global Energy Minimum of 1.1564 ± 0.0573 J / 1k GEMV** (54.46 µJ / MParam).
+   - In **INT8-G64** (11,275.5 ± 92.5 GEMV/s, 499 GFLOPS), integer byte-sign extension and scale multiplication trigger an intermediate GPU P-state boost (22.39 ± 2.28 W active, 18.02 W net). Because active package power jumps by **2.08x** while throughput only rises by **1.82x**, net energy increases to **1.5982 ± 0.0452 J / 1k GEMV**.
+   - In **INT4-G32 through INT4-G256** (19,369–20,840 GEMV/s, 954–1,049 GFLOPS), high-frequency bitwise ALU unpacking drives the GPU into its full boost state (29.75–31.24 W active, 24.91–27.04 W net).
+   - **Welch's t-test: FP16 vs. INT4**: A two-sample Welch's t-test between FP16 (1.1564 ± 0.0573 J) and INT4-G128 (1.2814 ± 0.0370 J) yields **t = -4.10, p = 0.0048** ($df=6.8, N=5$), confirming that FP16 is statistically significantly lower in net energy per operation by **9.8%**. Within the INT4 plateau ($G \in [64, 256]$ at 1.262–1.294 J), energy differences are statistically indistinguishable ($t = -0.72, p = 0.4956$ for G256 vs. G128; $t = 0.60, p = 0.5646$ for G72 vs. G128).
+   - **The Pareto Trade-off**: Rather than operating at energy parity with FP16, `INT4` represents the **Pareto Throughput Knee**: it trades +10.8% net energy over FP16 to deliver a **3.34x–3.37x throughput speedup** (`20,676–20,840` vs. `6,189 GEMV/s`), while still achieving a **44.2% net energy reduction compared to FP32** (`1.2623 J` vs. `2.2622 ± 0.2300 J / 1k GEMV`, Welch's $t = -9.41, p = 0.0006$).
 
 ---
 
 ## 5. Strongest Next Experiment
-To bridge the DVFS gap between FP16 (0.8974 J / 1k GEMV at 6,050 ops/s) and INT4 (1.2072–1.2166 J / 1k GEMV at 20,027–20,418 ops/s), the strongest follow-up experiment is **Small-Batch (M ∈ {2, 4, 8}) `simdgroup_matrix_multiply_accumulate` Dequant-in-Register Fusion** (applicable to speculative decoding verification and multi-token prefill chunking). Reusing each dequantized INT4 nibble across M = 4 input tokens multiplies arithmetic intensity by 4× at zero additional DRAM traffic or nibble-unpacking ALU instruction cost, projecting an energy reduction below **0.35 J / 1k token-projections**.
+To bridge the DVFS gap between FP16 (1.1564 J / 1k GEMV at 6,189 ops/s) and INT4 (1.2623–1.2814 J / 1k GEMV at 20,676–20,840 ops/s), the strongest follow-up experiment is **Small-Batch (M ∈ {2, 4, 8}) `simdgroup_matrix_multiply_accumulate` Dequant-in-Register Fusion** (applicable to speculative decoding verification and multi-token prefill chunking). Reusing each dequantized INT4 nibble across M = 4 input tokens multiplies arithmetic intensity by 4× at zero additional DRAM traffic or nibble-unpacking ALU instruction cost, projecting an energy reduction below **0.35 J / 1k token-projections**.

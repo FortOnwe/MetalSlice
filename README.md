@@ -19,12 +19,12 @@
 2. **Eliminating Large-Group SIMD Starvation & Hiding Non-Power-of-Two Integer Division Penalties**:
    - In legacy group-strided kernels (`gemv_int4_group_strided`, 1 thread per group), throughput creates a false "peak" at G = 72 because larger group sizes suffer catastrophic SIMD lane starvation when `num_groups = K / G < 128` (72%–86% idle lanes at G ≥ 128, collapsing throughput to `49.59–57.82 µs` / `734–856 GFLOPS`).
    - By introducing **MetalSlice's 100%-Occupancy Coalesced SIMDgroup Kernels** (`32 lanes × 8 elements = 128 packed bytes` = 1 exact Apple Silicon cache line per SIMD step, 4 rows per 128-thread threadgroup with compile-time template specialization `<G>`), thread starvation is eliminated:
-     - **In Warm-SLC (Compute / SRAM Bound)**: Power-of-two group sizes (G ∈ {32, 64, 128, 256}) execute in **`28.57–29.55 µs` (`1,437–1,487 GFLOPS`**, reaching **`27.04 µs` / `1,570.4 GFLOPS`** with 4-row register tiling at G = 256), outperforming non-power-of-two sizes (G = 72, 96 at `30.12 µs` / `1,409.9 GFLOPS`) by **+5.2%**. This is because `elem_idx / G` compiles to a 1-cycle bitwise shift (`lsr`) for powers of two versus a 3-cycle reciprocal multiply-high (`umulhi`) for G = 72, 96.
-     - **In Cold-DRAM (Unified Memory Bus Bound)**: The 2-cycle ALU difference between `lsr` and `umulhi` is **100% hidden behind LPDDR5X DRAM latency (`250–284 GB/s`)**. Throughput forms a flat bandwidth-bound plateau across **G ∈ {64, 72, 96, 128, 256} (`42.36–44.78 µs` / `948–1,003 GFLOPS` in sweeps, `19,782–20,418 GEMV/s` sustained)** once scale-factor byte overhead falls below 6.25%. This proves fine-grained non-power-of-two quantization blocks run at **zero throughput cost** in Cold DRAM.
+     - **In Warm-SLC (Compute / SRAM Bound)**: Under 1-row `C1Tpl`, power-of-two group sizes ($G \in \{16, 32, 64, 128, 256\}$) achieve a mean throughput of **`1,463.1 GFLOPS`** versus **`1,412.7 GFLOPS`** for non-power-of-two sizes ($G \in \{24, 48, 72, 96\}$)—a statistically significant **+3.57% PoT advantage** ($p < 0.001$, 95% bootstrap CI $[+3.56\%, +3.59\%]$, $N=20$ randomized trials) driven by the 1-cycle bitwise shift (`lsr`) versus 3-cycle reciprocal multiply-high (`umulhi`) scale-index calculation. However, under 4-row register tiling (`C4Tpl`), instruction-level interleaving across rows amortizes arithmetic overhead: non-PoT group sizes achieve **`1,481.2 GFLOPS`** versus PoT **`1,473.1 GFLOPS`** ($-0.55\%$), peaking at non-PoT $G=72$ (**`1,517.6 ± 0.7 GFLOPS`**) and $G=256$ (**`1,550.3 ± 1.0 GFLOPS`**).
+     - **In Cold-DRAM (Unified Memory Bus Bound)**: The integer arithmetic difference is **100% hidden behind LPDDR5X DRAM latency (`250–284 GB/s`)**. Throughput forms a flat bandwidth-bound plateau across **G ∈ {64, 72, 96, 128, 256} (`41.86–43.04 µs` / `986–1,014 GFLOPS` in sweeps, `20,235–20,840 GEMV/s` sustained)** once scale-factor byte overhead falls below 6.25%. This proves fine-grained non-power-of-two quantization blocks run at **zero throughput cost** in Cold DRAM.
 3. **The DVFS Power Wall & Pareto Frontier (FP16 Energy Minimum vs. INT4 Speedup)**:
-   - Multi-trial hardware telemetry (N=3 independent trials, Welch's t-test: t = 9.45, p = 0.0015) demonstrates that reducing memory traffic does not linearly reduce Joules per operation:
-     - **Global Minimum Energy (`FP16`)**: `FP16` achieves **`0.8974 ± 0.0488 J / 1k GEMV`** at `6,049.5 ± 114.3 GEMV/s` (25.7% lower energy than INT4) because memory-stalled execution holds the GPU in its ~9.25 W low-voltage P-state.
-     - **Pareto Throughput Knee (`INT4-G128` & `INT4-G72`)**: Nibble-unpacking ALUs drive the GPU into its ~28.5 W boost state, but delivering **`20,418.2 ± 106.4 GEMV/s` (`INT4-G128`)** and **`20,027.2 ± 111.0 GEMV/s` (`INT4-G72`)** delivers a **3.38x speedup over FP16** (6.63x over FP32) while achieving a **48.2% net energy reduction compared to FP32** (`1.2072 ± 0.0291 J` vs. `2.3286 ± 0.1364 J / 1k GEMV`).
+   - Multi-trial hardware telemetry ($N=5$ randomized-order independent trials with per-run idle baseline subtraction, Welch's t-test: $t = -4.10, p = 0.0048$) demonstrates that reducing memory traffic does not linearly reduce Joules per operation:
+     - **Global Minimum Energy (`FP16`)**: `FP16` achieves **`1.1564 ± 0.0573 J / 1k GEMV`** at `6,188.7 ± 45.3 GEMV/s` ($10.74 \pm 2.34\text{ W}$ active package power, $7.16\text{ W}$ net power) because memory-stalled execution prevents the GPU from entering high-frequency compute boost states.
+     - **Pareto Throughput Knee (`INT4-G128` & `INT4-G256`)**: Nibble-unpacking ALUs drive the GPU into its full ~30.5–31.2 W compute state, delivering **`20,676.3 ± 66.2 GEMV/s` (`INT4-G128`)** and **`20,839.5 ± 97.3 GEMV/s` (`INT4-G256`)** with net energy of **`1.2814 ± 0.0370 J`** and **`1.2623 ± 0.0469 J / 1k GEMV`**. This achieves a **3.34x–3.37x speedup over FP16** (6.54x–6.60x over FP32) while delivering a **44.2% net energy reduction compared to FP32** (`1.2623 J` vs. `2.2622 ± 0.2300 J / 1k GEMV`). Within INT4 $G \in [64, 256]$ ($1.262–1.294\text{ J}$), energy differences are statistically indistinguishable ($p \ge 0.50$).
 
 ---
 
@@ -38,20 +38,20 @@
 ---
 
 ## 3. Multi-Trial Power, Throughput & Energy Results (4608×4608, Cold DRAM)
-*Matrix: K=4608, N=4608 (21.23M parameters) | Ring Pool: 32 buffers (≥ 329 MB) | N=3 Independent Trials (4.0s sustained burst/trial, first 1.0s discarded, 3.83 W baseline idle subtracted)*
+*Matrix: K=4608, N=4608 (21.23M parameters) | Ring Pool: 32 buffers (≥ 329 MB) | N=5 Randomized-Order Independent Trials (4.0s sustained burst/trial, 8.0s inter-run cooldown, first 1.0s discarded, per-run local idle baseline subtracted)*
 
 | Configuration | Scale Byte Overhead | Sustained Throughput (GEMV/s) | Active Package Power (W) | LPDDR5X RAM Power (W) | Net Energy (Joules / 1k GEMV) | Speedup vs. FP32 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **FP32** | 0.00% | 3,081.4 ± 38.2 | 11.00 ± 0.33 | 10.63 ± 0.94 | 2.3286 ± 0.1364 | 1.00x |
-| **FP16 (Energy Min)** | 0.00% | 6,049.5 ± 114.3 | 9.25 ± 0.21 | 9.96 ± 1.13 | **0.8974 ± 0.0488** | 1.96x |
-| **INT8 (G=64)** | 3.13% | 11,065.9 ± 92.8 | 21.14 ± 1.99 | 10.19 ± 0.04 | 1.5646 ± 0.1800 | 3.59x |
-| **INT4 (G=32)** | 12.50% | 18,882.3 ± 171.7 | 27.60 ± 0.51 | 11.28 ± 0.10 | 1.2592 ± 0.0369 | 6.13x |
-| **INT4 (G=48, NPOT)** | 8.33% | 19,358.1 ± 316.1 | 27.73 ± 1.07 | 10.84 ± 0.21 | 1.2360 ± 0.0761 | 6.28x |
-| **INT4 (G=64)** | 6.25% | 19,782.1 ± 99.2 | 27.72 ± 1.14 | 9.76 ± 1.68 | **1.2079 ± 0.0637** | 6.42x |
-| **INT4 (G=72, NPOT)** | 5.56% | **20,027.2 ± 111.0** | 28.19 ± 0.85 | 10.85 ± 0.09 | **1.2166 ± 0.0489** | **6.50x** |
-| **INT4 (G=96, NPOT)** | 4.17% | **20,169.0 ± 185.7** | 29.41 ± 1.30 | 10.87 ± 0.02 | 1.2692 ± 0.0766 | **6.55x** |
-| **INT4 (G=128, Peak)** | 3.13% | **20,418.2 ± 106.4** | 28.47 ± 0.47 | 9.59 ± 1.73 | **1.2072 ± 0.0291** | **6.63x** |
-| **INT4 (G=256)** | 1.56% | 20,178.6 ± 266.5 | 29.15 ± 0.81 | 10.60 ± 0.15 | 1.2549 ± 0.0462 | 6.55x |
+| **FP32** | 0.00% | 3,159.3 ± 28.0 | 11.23 ± 2.38 | 9.83 ± 0.87 | 2.2622 ± 0.2300 | 1.00x |
+| **FP16 (Energy Min)** | 0.00% | 6,188.7 ± 45.3 | 10.74 ± 2.34 | 10.14 ± 1.45 | **1.1564 ± 0.0573** | 1.96x |
+| **INT8 (G=64)** | 3.13% | 11,275.5 ± 92.5 | 22.39 ± 2.28 | 10.04 ± 0.08 | 1.5982 ± 0.0452 | 3.57x |
+| **INT4 (G=32)** | 12.50% | 19,369.3 ± 71.7 | 29.75 ± 1.50 | 10.96 ± 0.09 | 1.2859 ± 0.0644 | 6.13x |
+| **INT4 (G=48, NPOT)** | 8.33% | 19,887.2 ± 57.0 | 30.17 ± 2.23 | 10.63 ± 0.11 | 1.3253 ± 0.0357 | 6.29x |
+| **INT4 (G=64)** | 6.25% | 20,235.1 ± 82.1 | 30.84 ± 2.32 | 10.64 ± 0.13 | 1.2827 ± 0.0382 | 6.40x |
+| **INT4 (G=72, NPOT)** | 5.56% | 20,367.1 ± 99.6 | 31.24 ± 2.74 | 9.70 ± 1.47 | 1.2937 ± 0.0266 | 6.45x |
+| **INT4 (G=96, NPOT)** | 4.17% | 20,560.9 ± 61.7 | 30.83 ± 2.08 | 10.48 ± 0.10 | 1.3152 ± 0.0457 | 6.51x |
+| **INT4 (G=128)** | 3.13% | 20,676.3 ± 66.2 | 30.50 ± 2.54 | 10.36 ± 0.08 | 1.2814 ± 0.0370 | 6.54x |
+| **INT4 (G=256, Peak)** | 1.56% | **20,839.5 ± 97.3** | 31.24 ± 2.84 | 10.31 ± 0.11 | **1.2623 ± 0.0469** | **6.60x** |
 
 ![Throughput vs Energy Pareto Frontier](results/throughput_energy_pareto.svg)
 
@@ -97,7 +97,7 @@
 ![Group Granularity and Architecture Scaling](results/group_granularity_scaling.svg)
 
 > [!TIP]
-> **Live Interactive Benchmark Suite:** Explore parameter sweeps, real-time SIMD lane starvation collapse, SLC eviction curves, and DVFS Pareto scaling directly in your browser by opening [`docs/index.html`](file:///Users/fo/Documents/Antigravity%20Test/metal_unified_memory_quant_study/docs/index.html) or viewing the [live GitHub Pages deployment](https://fortonwe.github.io/MetalSlice/).
+> **Live Interactive Benchmark Suite:** Explore parameter sweeps, real-time SIMD lane starvation collapse, SLC eviction curves, and DVFS Pareto scaling directly in your browser by opening [`docs/index.html`](docs/index.html) or viewing the [live GitHub Pages deployment](https://fortonwe.github.io/MetalSlice/).
 
 ---
 
@@ -117,9 +117,11 @@ MetalSlice/
 ├── src/
 │   ├── kernels.metal          # Coalesced SIMDgroup FP32/FP16/INT8/INT4 + Template<G> MSL shaders
 │   ├── bench_runner.mm        # Metal hardware-timestamp benchmark & CPU fp64 verifier
-│   ├── ablation_runner.mm     # 3-part microarchitectural ablation suite (SLC, Batching, 4-Kernel)
-│   ├── power_rerun_confirmation.py # Multi-trial (N=3) macmon power & energy profiler
+│   ├── ablation_runner.mm     # Microarchitectural ablation suite (SLC, Batching, 4-Kernel, Warm-SLC repeats)
+│   ├── power_rerun_confirmation.py # Multi-trial (N=5) randomized-order macmon power & energy profiler
 │   ├── power_profiler.py      # Extended single-pass sustained power profiler
+│   ├── analyze_warm_slc.py    # Statistical analysis & bootstrap CI on warm-SLC replications
+│   ├── energy_stats.py        # Welch's t-test statistical engine (no scipy dependency)
 │   └── generate_plots.py      # Pure-Python SVG generator for Pareto frontier charts
 └── results/
     ├── interactive_benchmark.html   # Standalone interactive kernel throughput widget
@@ -131,9 +133,12 @@ MetalSlice/
     ├── ablation_ring_pool_slc.csv
     ├── ablation_batch_dispatch.csv
     ├── ablation_group_granularity.csv
+    ├── ablation_warm_slc_repeats.csv
+    ├── ablation_warm_slc_repeats_summary.md
     ├── ablation_multitrial_confirmation.csv
     ├── power_telemetry_rigorous.csv
     ├── power_telemetry_rigorous.json
+    ├── energy_stats.json
     ├── throughput_energy_pareto.svg
     ├── slc_eviction_curve.svg
     └── group_granularity_scaling.svg
