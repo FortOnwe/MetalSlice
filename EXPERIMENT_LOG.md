@@ -66,3 +66,12 @@ To isolate true hardware physics from software implementation artifacts, we re-e
 - Executed 3-trial continuous power and thermal confirmation (`src/power_rerun_confirmation.py` → `results/ablation_multitrial_confirmation.csv`, `results/power_telemetry_rigorous.csv`, `results/power_telemetry_rigorous.json`) across 10 configurations (FP32, FP16, INT8-G64, and INT4 at G ∈ {32, 48, 64, 72, 96, 128, 256}):
   - Welch's t-test between FP16 (0.8974 ± 0.0488 J) and INT4-G128 (1.2072 ± 0.0291 J): t = 9.45, p = 0.0015.
   - Established FP16 (0.8974 ± 0.0488 J / 1k GEMV at 6,049.5 ± 114.3 GEMV/s, 9.25 ± 0.21 W) as the Global Energy Minimum (due to low-voltage DVFS P-state memory stalls), and INT4-G128 (20,418.2 ± 106.4 GEMV/s, 1.2072 ± 0.0291 J / 1k GEMV) / INT4-G72 (20,027.2 ± 111.0 GEMV/s, 1.2166 ± 0.0489 J / 1k GEMV) as the Pareto Throughput-Efficiency Knee (3.38x faster than FP16, 48.2% lower energy than FP32).
+
+---
+
+## Phase 5: Interactive Visualization Suite & GitHub Pages Deployment
+- Integrated interactive Luminous-styled web visualization artifacts:
+  1. `docs/index.html`: Complete multi-experiment interactive benchmark suite (Chart.js, KaTeX, responsive layout, dynamic theme switching, and live KPI calculations) deployed for GitHub Pages (`https://fortonwe.github.io/MetalSlice/`).
+  2. `results/interactive_benchmark.html`: Lightweight, zero-dependency standalone widget isolating group size scaling ($G=16 \to 256$) and SIMD lane starvation collapse.
+  3. `results/interactive_dashboard.html`: Complete multi-experiment dashboard mirroring `docs/index.html` for local inspection.
+- Updated `README.md` and `analysis.md` to reference interactive visualization deliverables. All SVG and HTML artifacts strictly validated against HTML/XML parsers.

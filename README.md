@@ -2,6 +2,7 @@
 
 **Author:** Fortune N. Onwe  
 **Repository:** [https://github.com/FortOnwe/MetalSlice](https://github.com/FortOnwe/MetalSlice)  
+**Interactive Benchmark Dashboard:** [https://fortonwe.github.io/MetalSlice/](https://fortonwe.github.io/MetalSlice/) *(or open `docs/index.html` locally)*  
 **Testbed Hardware:** Apple MacBook Pro (Apple M5 Pro, 18 CPU cores, 48 GB unified LPDDR5X memory, macOS 27.0.1)  
 **Framework:** Native Metal Shading Language (MSL) & Objective-C++ (`-O3 -std=c++17 -framework Foundation -framework Metal`)
 
@@ -95,6 +96,9 @@
 
 ![Group Granularity and Architecture Scaling](results/group_granularity_scaling.svg)
 
+> [!TIP]
+> **Live Interactive Benchmark Suite:** Explore parameter sweeps, real-time SIMD lane starvation collapse, SLC eviction curves, and DVFS Pareto scaling directly in your browser by opening [`docs/index.html`](file:///Users/fo/Documents/Antigravity%20Test/metal_unified_memory_quant_study/docs/index.html) or viewing the [live GitHub Pages deployment](https://fortonwe.github.io/MetalSlice/).
+
 ---
 
 ## 5. Repository Structure & Reproduction Commands
@@ -108,6 +112,8 @@ MetalSlice/
 ├── CITATION.cff               # Formal academic citation metadata (Author: Fortune N. Onwe)
 ├── LICENSE                    # MIT License
 ├── Makefile                   # One-command build & benchmark automation
+├── docs/
+│   └── index.html             # Live interactive multi-experiment benchmark suite (GitHub Pages)
 ├── src/
 │   ├── kernels.metal          # Coalesced SIMDgroup FP32/FP16/INT8/INT4 + Template<G> MSL shaders
 │   ├── bench_runner.mm        # Metal hardware-timestamp benchmark & CPU fp64 verifier
@@ -116,6 +122,8 @@ MetalSlice/
 │   ├── power_profiler.py      # Extended single-pass sustained power profiler
 │   └── generate_plots.py      # Pure-Python SVG generator for Pareto frontier charts
 └── results/
+    ├── interactive_benchmark.html   # Standalone interactive kernel throughput widget
+    ├── interactive_dashboard.html   # Full multi-experiment interactive dashboard
     ├── sweep_gpu_timestamps_4608x4608.csv
     ├── sweep_4096x4096.csv
     ├── sweep_11008x4096.csv
